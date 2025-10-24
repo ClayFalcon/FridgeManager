@@ -236,6 +236,10 @@ npm run test:generate        # テストケース生成
 
 ## 📚 ドキュメント
 
+- [DEVELOPMENT_FLOW.md](./DEVELOPMENT_FLOW.md) - 開発フロー
+- [DETOX_CI_SETUP.md](./DETOX_CI_SETUP.md) - Detox自動テストとCI/CD設定
+- [RELEASE_AUTOMATION.md](./RELEASE_AUTOMATION.md) - リリース・バージョンアップ自動化
+- [DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md) - 開発フロー完全ガイド
 - [QUICKSTART.md](./QUICKSTART.md) - クイックスタートガイド
 - [SPECIFICATION.md](./SPECIFICATION.md) - 詳細仕様書
 - [FIREBASE_SETUP.md](./FIREBASE_SETUP.md) - Firebase設定手順
