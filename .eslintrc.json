@@ -1,0 +1,12 @@
+{
+  "extends": ["expo", "prettier"],
+  "plugins": ["prettier"],
+  "rules": {
+    "prettier/prettier": "error",
+    "react-native/no-inline-styles": "warn",
+    "react-native/no-color-literals": "warn"
+  },
+  "env": {
+    "jest": true
+  }
+}
