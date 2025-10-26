@@ -7,8 +7,8 @@
     "start:dev": "expo start",
     "start:dev:verbose": "expo start --verbose",
     "start:prod": "expo start --no-dev --minify",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "test": "jest",
     "test:unit": "jest --testPathPattern=__tests__",
@@ -89,7 +89,7 @@
       "android.debug": {
         "type": "android.apk",
         "binaryPath": "android/app/build/outputs/apk/debug/app-debug.apk",
-        "build": "cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug",
+        "build": "cd android && gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug",
         "reversePorts": [
           {
             "host": 8081,
