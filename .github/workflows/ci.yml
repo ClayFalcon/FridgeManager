@@ -67,7 +67,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
+        
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+        
       - name: Build Android app
         run: |
           cd android
