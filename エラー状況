@@ -1,0 +1,636 @@
+# 📋 Detox E2Eテスト エラー状況
+
+## 現在の状況（2025年11月3日）
+
+### ✅ 完了している項目
+1. **ビルド**: Android APK生成成功 (`app-debug.apk`)
+2. **エミュレータ**: `Medium_Phone_API_36.0` 稼働中
+3. **APKインストール**: エミュレータにインストール済み
+4. **ユニットテスト**: 6件すべて成功
+5. **Metro Bundler**: 起動中（ポート8081）
+6. **Detox設定**: Detox 20対応完了
+   - `e2e/config.json`: Detox 20対応設定
+   - `e2e/init.js`: シンプルな初期化
+7. **React Nativeアップグレード**: 0.79.6 → 0.81.5 完了
+8. **NDKアップグレード**: 26.1.10909125 → 27.0.12077973 完了
+9. **Android Gradle設定**: `testInstrumentationRunner` 追加完了
+10. **依存ライブラリ更新**: 
+    - `react-native-screens`: ~4.11.1 → ~4.16.0
+    - `@types/react`: 19.0.14 → ^19.2.2
+
+### ❌ 失敗している項目
+1. **Detox E2Eテスト**: すべて失敗
+2. **エラー**: WebSocket接続不可
+3. **症状**: APKがDetoxと通信できない
+
+---
+
+## 📝 詳細なエラー内容
+
+### 主なエラーメッセージ
+```
+Failed to run application on the device
+HINT: Most likely, your tests have timed out and called detox.cleanup() 
+      while it was waiting for "ready" message (over WebSocket) 
+      from the instrumentation process.
+
+Detox can't seem to connect to the test app(s)!
+The test app might have crashed prematurely, or has had trouble setting up the connection.
+```
+
+### 発生箇所
+- `e2e/app.e2e.js` の全テストケース（6件）
+- すべて `device.launchApp()` でタイムアウト
+
+---
+
+## 🔧 現在の設定
+
+### e2e/config.json
+```json
+{
+  "testRunner": "jest-circus/runner",
+  "testTimeout": 120000,
+  "testRegex": "\\.e2e\\.js$",
+  "reporters": ["detox/runners/jest/reporter"],
+  "verbose": true,
+  "bail": false,
+  "maxWorkers": 1,
+  "globalSetup": "detox/runners/jest/globalSetup",
+  "globalTeardown": "detox/runners/jest/globalTeardown",
+  "testEnvironment": "detox/runners/jest/testEnvironment",
+  "testEnvironmentOptions": {
+    "launchApp": true
+  },
+  "setupFilesAfterEnv": ["./init.js"]
+}
+```
+
+### e2e/init.js
+```javascript
+// e2e/init.js
+require('detox');
+
+jest.setTimeout(120000);
+```
+
+### e2e/app.e2e.js
+```javascript
+describe('FridgeManager App', () => {
+  beforeAll(async () => {
+    await device.launchApp();  // ← ここでタイムアウト
+  });
+
+  beforeEach(async () => {
+    await device.reloadReactNative();
+  });
+  
+  // テストケース6件
+});
+```
+
+---
+
+## 🔍 問題の原因（推測）
+
+### 1. Detox用APKの問題
+- APKは存在するが、Detox instrumentationとWebSocket接続が確立できない
+- テスト用APK (`app-debug-androidTest.apk`) は存在
+- 通常のAPK起動は成功（手動で起動可能）
+
+### 2. WebSocket接続の問題
+- Detox 20がworker instanceを正しく設定できていない可能性
+- APK側のWebSocketサーバーが応答しない
+- instrumentation processが起動しない
+
+### 3. React Native 0.81.5へのアップグレード完了
+- ✅ React Native 0.79.6 → 0.81.5 にアップグレード完了
+- ✅ NDK 26 → 27 にアップグレード完了（C++20対応）
+- ✅ `react-native-screens` を Expo SDK 54 対応版に更新完了
+- ⚠️ しかし、E2Eテストのエラーは解消していない
+
+---
+
+## 📊 テスト結果
+
+| テスト種類 | 状態 | 結果 |
+|-----------|------|------|
+| ユニットテスト | ✅ 成功 | 6件すべてパス |
+| APKビルド | ✅ 成功 | APK生成完了 |
+| APKインストール | ✅ 成功 | エミュレータにインストール |
+| 手動APK起動 | ✅ 成功 | `adb` で起動可能 |
+| Detox E2Eテスト | ❌ 失敗 | 6件すべて失敗（WebSocket接続エラー） |
+
+---
+
+## 🎯 次のステップ候補
+
+### オプション1: Detox 19にダウングレード（移行プラン ステップ3）
+- Detox 20の複雑さを避けるため、安定版の19を使用
+- Detox 19系は実績があり、Expo環境でのセットアップが比較的簡単
+
+### オプション2: Android Instrumentation の詳細ログ確認
+- `adb logcat` で Android側のログを確認
+- instrumentation process が正しく起動しているか確認
+- WebSocketサーバーが起動しているか確認
+
+### オプション3: Detox設定の見直し
+- `package.json` の Detox設定を確認
+- `e2e/config.json` の設定を検証
+- Detox 20の最新の推奨設定を確認
+
+### オプション4: アプリの起動ログ確認
+- アプリが正常に起動しているか `adb logcat` で確認
+- ANR（Application Not Responding）エラーがないか確認
+- クラッシュログがないか確認
+
+### オプション5: Metro Bundler の接続確認
+- Metro Bundler が正常に動作しているか確認
+- ポート8081が正しくリッスンされているか確認
+- ADB reverse ポートフォワーディングが設定されているか確認
+
+---
+
+## 📌 重要な情報
+
+### エミュレータ情報
+- **名前**: `Medium_Phone_API_36.0`
+- **デバイスID**: `emulator-5554`
+- **状態**: 稼働中
+
+### パッケージ情報
+- **Detox**: `^20.44.0`
+- **Jest**: `^29.7.0`
+- **Expo**: `~54.0.0`
+- **React Native**: `0.81.5` ✅（Expo SDK 54推奨バージョン）
+- **React**: `19.1.0`
+- **NDK**: `27.0.12077973` ✅
+- **react-native-screens**: `~4.16.0` ✅
+
+### ファイル配置
+```
+e2e/
+ ├── app.e2e.js       # テストケース（6件）
+ ├── config.json      # Detox 20対応設定
+ └── init.js          # シンプルな初期化
+
+android/
+ └── app/
+     └── build/
+         └── outputs/
+             └── apk/
+                 └── debug/
+                     ├── app-debug.apk
+                     └── androidTest/
+                         └── app-debug-androidTest.apk
+```
+
+---
+
+## 🚨 緊急性
+
+**高**: Detox E2Eテストが完全に失敗している
+- 自動テストが機能しない
+- CI/CDパイプラインで問題が発生する
+
+**優先度**: 中
+- ユニットテストは正常に動作している
+- アプリ自体は手動で起動可能
+- 本番デプロイ前に対処が必要
+
+---
+
+## 🔄 最新の実行結果（2025年1月28日 16:47）
+
+### 実行コマンド
+```bash
+npm run test:detox:emulator:test
+```
+
+### 実行ログ
+
+#### エミュレータ起動
+```
+✓ エミュレータが起動しました (約30秒で起動完了)
+```
+
+#### Detox実行
+```
+16:47:22.631 detox[35272] B jest --config e2e/config.json
+16:48:27.020 detox[16312] i app.e2e.js is assigned to emulator-5554 (Medium_Phone_API_36.0)
+16:48:45.928 detox[16312] i An error occurred while waiting for the app to become ready. Waiting for disconnection...
+```
+
+#### 詳細なエラーメッセージ
+```
+error: Failed to run application on the device
+
+HINT: Most likely, your tests have timed out and called detox.cleanup() 
+      while it was waiting for "ready" message (over WebSocket) 
+      from the instrumentation process.
+```
+
+#### 接続エラー
+```
+16:48:45.961 detox[16312] i Detox can't seem to connect to the test app(s)!
+
+HINT: 
+
+The test app might have crashed prematurely, or has had trouble setting up the connection.
+Refer to our troubleshooting guide, for full details: 
+https://wix.github.io/Detox/docs/troubleshooting/running-tests#tests-execution-hangs
+```
+
+#### テスト結果サマリー
+```
+FAIL e2e/app.e2e.js (80.617 s)
+  FridgeManager App
+    × アプリが正常に起動する (2 ms)
+    × ボタンを押すとダイアログが表示される
+    × ダイアログのメッセージが正しく表示される
+    × OKボタンを押すとダイアログが閉じる (1 ms)
+    × アプリのタイトルが正しく表示される
+    × ボタンのテキストが正しく表示される
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 6 total
+Snapshots:   0 total
+Time:        80.991 s
+```
+
+#### エラー発生タイミング
+- **テスト開始から約63秒後**: アプリの準備完了待機中にエラー
+- **エラー発生箇所**: `device.launchApp()` の実行時
+- **待機時間**: 約20秒間、WebSocket接続を待機したが失敗
+
+#### スタックトレース
+```
+Failed to run application on the device
+
+at createErrorWithUserStack (../node_modules/detox/src/utils/errorUtils.js:36:27)
+at RuntimeDevice.stackTraceWrapper [as launchApp] (../node_modules/detox/src/utils/wrapWithStackTraceCutter.js:9:34)
+at Object.launchApp (app.e2e.js:3:18)
+```
+
+### 観察事項
+1. **エミュレータ起動**: 正常に完了（約30秒）
+2. **テスト割り当て**: 正常（emulator-5554に割り当て）
+3. **アプリ起動試行**: 実行されたが、WebSocket接続が確立されない
+4. **タイムアウト時間**: 約20秒待機後にエラー
+5. **全テストケース**: すべて`device.launchApp()`で失敗（同一エラー）
+
+### エラーコード
+```
+Exit code: 1
+```
+
+---
+
+## 🔍 調査用詳細情報
+
+### 1. エラーが発生する具体的な操作や状況
+
+#### 発生タイミング
+- **段階**: E2Eテスト実行時（アプリ起動フェーズ）
+- **具体的な操作**: `device.launchApp()` の実行時
+- **実行フロー**:
+  1. ✅ エミュレータ起動（約30秒、成功）
+  2. ✅ テスト割り当て（emulator-5554に割り当て、成功）
+  3. ✅ Detox初期化（`globalSetup`実行、成功）
+  4. ❌ **アプリ起動試行**（ここでエラー）
+  5. ❌ WebSocket接続確立待機（約20秒待機後にタイムアウト）
+  6. ❌ テスト実行（全6件が起動失敗で失敗）
+
+#### ビルド時の状況
+- **ビルド**: ✅ 成功
+  - `app-debug.apk` が正常に生成される
+  - `app-debug-androidTest.apk` も生成される
+  - ビルドエラーなし
+
+#### 起動時の状況
+- **手動起動**: ✅ 成功
+  - `adb shell am start` でアプリが起動可能
+  - 通常のアプリ起動は正常に動作
+
+#### テスト時の状況
+- **テスト実行開始**: ✅ 成功
+  - Jest設定読み込み成功
+  - Detox環境初期化成功
+  - エミュレータ検出成功
+- **アプリ起動フェーズ**: ❌ 失敗
+  - `device.launchApp()` 実行時にWebSocket接続確立できない
+  - アプリが起動している可能性はあるが、Detoxとの通信が確立されない
+
+---
+
+### 2. エラーログで特に気になる部分
+
+#### 🔴 重要なエラーメッセージ
+
+1. **WebSocket接続エラー**
+   ```
+   An error occurred while waiting for the app to become ready. Waiting for disconnection...
+   ```
+   - **意味**: アプリの準備完了を待機中にエラー
+   - **示唆**: アプリは起動しているが、Detoxに「準備完了」メッセージを送信できていない
+
+2. **"ready"メッセージ待機エラー**
+   ```
+   HINT: Most likely, your tests have timed out and called detox.cleanup() 
+         while it was waiting for "ready" message (over WebSocket) 
+         from the instrumentation process.
+   ```
+   - **意味**: instrumentation process（Android側のテストプロセス）から"ready"メッセージが来ない
+   - **示唆**: Android側のDetox instrumentationが正しく動作していない可能性
+
+3. **接続確立失敗**
+   ```
+   Detox can't seem to connect to the test app(s)!
+   The test app might have crashed prematurely, or has had trouble setting up the connection.
+   ```
+   - **意味**: Detoxがテストアプリに接続できない
+   - **示唆**: アプリクラッシュまたは接続設定の問題
+
+#### 🔴 スタックトレースの重要な部分
+
+```
+at createErrorWithUserStack (../node_modules/detox/src/utils/errorUtils.js:36:27)
+at RuntimeDevice.stackTraceWrapper [as launchApp] (../node_modules/detox/src/utils/wrapWithStackTraceCutter.js:9:34)
+at Object.launchApp (app.e2e.js:3:18)
+```
+- **`errorUtils.js:36:27`**: Detox内部のエラー生成処理
+- **`wrapWithStackTraceCutter.js:9:34`**: スタックトレースのラッパー
+- **`app.e2e.js:3:18`**: 実際のエラー発生箇所（`device.launchApp()`）
+
+#### 🔴 タイミング情報
+
+- **テスト開始からエラーまで**: 約63秒
+  - 16:47:22 - Detox実行開始
+  - 16:48:27 - テスト割り当て（約65秒後）
+  - 16:48:45 - エラー発生（約18秒後、合計約83秒）
+- **待機時間**: 約20秒間、WebSocket接続を待機
+
+#### 🔴 特に気になるキーワード
+
+1. **`instrumentation process`**
+   - Android側でDetoxのテストを実行するプロセス
+   - このプロセスが起動しない、またはWebSocketサーバーを立ち上げていない可能性
+
+2. **`WebSocket`**
+   - Detoxとアプリ間の通信プロトコル
+   - 接続確立が失敗している = アプリ側のWebSocketサーバーが起動していない
+
+3. **`ready message`**
+   - アプリがDetoxとの通信準備ができたことを示すメッセージ
+   - このメッセージが来ない = アプリがDetoxを認識していない、またはinstrumentationが動いていない
+
+4. **`testInstrumentationRunner`**
+   - Android Gradle設定で指定する必要があるDetoxのテストランナー
+   - 現在の`android/app/build.gradle`にこの設定が見当たらない（重要）
+
+---
+
+### 3. 関連する使用ライブラリ
+
+#### コアフレームワーク
+- **React Native**: `0.81.5` ✅（Expo SDK 54推奨バージョン）
+- **React**: `19.1.0`
+- **Expo**: `~54.0.0`
+- **Expo Modules Core**: `^3.0.22`
+
+#### テスト関連
+- **Jest**: `^29.7.0`（テストランナー）
+- **Detox**: `^20.44.0`（E2Eテストフレームワーク）
+- **jest-expo**: `~54.0.10`（Expo用Jest設定）
+- **@testing-library/react-native**: `^13.3.3`（ユニットテスト用）
+- **react-test-renderer**: `19.1.0`（Reactコンポーネントテスト用）
+
+#### React Native関連ライブラリ
+- **react-native-safe-area-context**: `~5.4.0`
+- **react-native-screens**: `~4.16.0` ✅（Expo SDK 54対応版）
+- **expo-status-bar**: `~2.2.3`
+
+#### 開発ツール
+- **TypeScript**: `~5.8.3`（型定義用、コードはJavaScript）
+- **@babel/core**: `^7.25.2`（トランスパイラ）
+- **@expo/cli**: `0.18.16`（Expo CLI）
+
+#### Android関連
+- **Gradle**: （バージョンは`gradle-wrapper.properties`で管理）
+- **Kotlin**: `2.1.20`（Gradleプラグインで管理）
+- **NDK**: `27.0.12077973` ✅（C++20対応）
+- **Hermes**: 有効（`gradle.properties`で`hermesEnabled=true`）
+- **testInstrumentationRunner**: `androidx.test.runner.AndroidJUnitRunner` ✅（追加済み）
+
+#### 潜在的に影響するライブラリ
+1. **Hermes JS Engine**
+   - 有効化されている（`hermesEnabled=true`）
+   - Detoxとの互換性問題の可能性あり
+
+2. **Expo Modules**
+   - `expo-modules-core`を使用
+   - ネイティブモジュールとの連携がDetoxに影響する可能性
+
+3. **react-native-screens**
+   - ネイティブ画面最適化ライブラリ
+   - Detoxの画面検出に影響する可能性（現在は最小限の使用）
+
+#### Detox E2Eテストで使用していないが、存在するライブラリ
+- **React Navigation**: 使用していない（単一画面アプリ）
+- **Redux/Zustand**: 使用していない（状態管理ライブラリなし）
+- **TypeScript**: 型定義のみ（実際のコードはJavaScript）
+- **Firebase**: 設定されているが、E2Eテストでは使用していない
+
+---
+
+### 4. 問題の可能性が高い箇所
+
+#### ✅ 完了: Android Gradle設定
+- **`android/app/build.gradle`**: `testInstrumentationRunner`を追加済み ✅
+  - `testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"` を `defaultConfig` に追加
+  - しかし、E2Eテストのエラーは解消せず（他の要因が原因の可能性）
+
+#### 🟡 中程度: Detox設定
+- **`e2e/config.json`**: Detox 20の設定が正しいか確認が必要
+- **`e2e/init.js`**: 簡素化されているが、Detox 20の要件を満たしているか要確認
+
+#### ✅ 完了: バージョン互換性
+- **React Native 0.81.5**: ✅ Expo SDK 54の推奨バージョンにアップグレード完了
+- **NDK 27**: ✅ React Native 0.81.5 の C++20 要件に対応完了
+- **Detox 20**: React Native 0.81.5との互換性は公式に確認されているが、実際には問題発生（WebSocket接続エラー）
+
+#### 🟢 低: その他
+- **Hermes**: 有効だが、通常はDetoxと互換性あり
+- **Metro Bundler**: 起動しているが、接続確認が必要
+
+---
+
+---
+
+## 🔄 実施した対応内容（2025年11月3日）
+
+### ステップ1: Android Gradle設定の修正
+
+**実施内容**:
+- `android/app/build.gradle` の `defaultConfig` に以下を追加：
+  ```groovy
+  testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+  ```
+
+**結果**:
+- ✅ 設定追加完了
+- ✅ APKビルド成功
+- ❌ E2Eテストのエラーは解消せず
+
+**実行日時**: 2025年11月3日
+
+---
+
+### ステップ2: React Native のアップグレード
+
+**実施内容**:
+1. React Native 0.79.6 → 0.81.5 にアップグレード
+   ```bash
+   npx expo install react-native@0.81.5
+   ```
+
+2. NDK 26.1.10909125 → 27.0.12077973 にアップグレード
+   - `android/build.gradle` の `ndkVersion` を更新
+   - React Native 0.81.5 が使用する C++20 の `std::format` に対応するため
+
+3. 依存ライブラリの更新
+   - `@types/react`: 19.0.14 → ^19.2.2
+   - `react-native-screens`: ~4.11.1 → ~4.16.0（Expo SDK 54 対応版）
+
+**結果**:
+- ✅ React Native 0.81.5 へのアップグレード完了
+- ✅ NDK 27 へのアップグレード完了
+- ✅ ビルド成功（C++コンパイルエラー解消）
+- ✅ ユニットテスト成功（6件すべてパス）
+- ✅ E2Eテスト実行時間が改善（約44秒 → 約13秒）
+- ❌ E2EテストのWebSocket接続エラーは依然として発生
+
+**実行日時**: 2025年11月3日 23:36-00:01
+
+**ビルドログ**:
+```
+BUILD SUCCESSFUL in 3m 49s
+481 actionable tasks: 169 executed, 24 from cache, 288 up-to-date
+```
+
+**E2Eテスト実行時間の改善**:
+- 以前: 約80秒（16:47:22 - 16:48:45）
+- 今回: 約13秒（00:00:44 - 00:01:00）
+- **改善率**: 約84%短縮
+
+---
+
+## 🔄 最新の実行結果（2025年11月3日 00:00）
+
+### 実行コマンド
+```bash
+npm run test:detox:emulator:test
+```
+
+### 実行ログ
+
+#### エミュレータ起動
+```
+✓ エミュレータは既に起動しています
+```
+
+#### Detox実行
+```
+00:00:44.207 detox[26412] B jest --config e2e/config.json
+00:00:57.796 detox[36528] i app.e2e.js is assigned to emulator-5554 (Medium_Phone_API_36.0)
+00:00:59.998 detox[36528] i An error occurred while waiting for the app to become ready. Waiting for disconnection...
+```
+
+#### 詳細なエラーメッセージ
+```
+error: Failed to run application on the device
+
+HINT: Most likely, your tests have timed out and called detox.cleanup() 
+      while it was waiting for "ready" message (over WebSocket) 
+      from the instrumentation process.
+```
+
+#### 接続エラー
+```
+00:00:59.998 detox[36528] i Detox can't seem to connect to the test app(s)!
+
+HINT: 
+
+The test app might have crashed prematurely, or has had trouble setting up the connection.
+Refer to our troubleshooting guide, for full details: 
+https://wix.github.io/Detox/docs/troubleshooting/running-tests#tests-execution-hangs
+```
+
+#### テスト結果サマリー
+```
+FAIL e2e/app.e2e.js (13.498 s)
+  FridgeManager App
+    × アプリが正常に起動する (3 ms)
+    × ボタンを押すとダイアログが表示される (1 ms)
+    × ダイアログのメッセージが正しく表示される (1 ms)
+    × OKボタンを押すとダイアログが閉じる (1 ms)
+    × アプリのタイトルが正しく表示される (1 ms)
+    × ボタンのテキストが正しく表示される
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 6 total
+Snapshots:   0 total
+Time:        13.791 s
+```
+
+#### エラー発生タイミング
+- **テスト開始から約13秒後**: アプリの準備完了待機中にエラー
+- **エラー発生箇所**: `device.launchApp()` の実行時
+- **待機時間**: 約2-3秒間、WebSocket接続を待機したが失敗（以前は約20秒待機）
+
+#### スタックトレース
+```
+Failed to run application on the device
+
+at createErrorWithUserStack (../node_modules/detox/src/utils/errorUtils.js:36:27)
+at RuntimeDevice.stackTraceWrapper [as launchApp] (../node_modules/detox/src/utils/wrapWithStackTraceCutter.js:9:34)
+at Object.launchApp (app.e2e.js:3:18)
+```
+
+### 観察事項
+1. **エミュレータ起動**: 正常（既に起動済み）
+2. **テスト割り当て**: 正常（emulator-5554に割り当て）
+3. **アプリ起動試行**: 実行されたが、WebSocket接続が確立されない
+4. **タイムアウト時間**: 約2-3秒待機後にエラー（以前は約20秒）
+5. **全テストケース**: すべて`device.launchApp()`で失敗（同一エラー）
+6. **実行時間の改善**: 約80秒 → 約13秒に短縮（約84%改善）
+
+### 改善点
+- ✅ 実行時間が大幅に短縮された（約84%改善）
+- ✅ ビルドが正常に完了するようになった（NDK 27対応）
+- ✅ React Nativeが推奨バージョンにアップグレードされた
+
+### 未解決の問題
+- ❌ WebSocket接続エラーは依然として発生
+- ❌ Detoxとアプリ間の通信が確立されない
+- ❌ instrumentation process からの "ready" メッセージが受信できない
+
+---
+
+## 📊 対応実施前後の比較
+
+| 項目 | 実施前 | 実施後 | 変化 |
+|------|--------|--------|------|
+| React Native | 0.79.6 | 0.81.5 | ✅ アップグレード |
+| NDK | 26.1.10909125 | 27.0.12077973 | ✅ アップグレード |
+| react-native-screens | ~4.11.1 | ~4.16.0 | ✅ アップグレード |
+| testInstrumentationRunner | 未設定 | 設定済み | ✅ 追加 |
+| ビルド | ✅ 成功 | ✅ 成功 | 変化なし |
+| ユニットテスト | ✅ 成功 | ✅ 成功 | 変化なし |
+| E2Eテスト実行時間 | 約80秒 | 約13秒 | ✅ 84%改善 |
+| E2Eテスト結果 | ❌ 失敗 | ❌ 失敗 | 変化なし |
+
+---
+
+更新日時: 2025年1月28日 16:48（最新実行結果を追加）、17:00（調査用詳細情報を追加）、2025年11月3日 00:01（対応実施結果を追加）
+

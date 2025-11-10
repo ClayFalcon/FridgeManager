@@ -33,19 +33,19 @@ graph TD
 
 ### 1.2 タイプ一覧
 
-| タイプ | 説明 | バージョン影響 |
-|--------|------|----------------|
-| `feat` | 新機能追加 | MINOR |
-| `fix` | バグ修正 | PATCH |
-| `docs` | ドキュメント更新 | - |
-| `style` | コードフォーマット | - |
-| `refactor` | リファクタリング | - |
-| `test` | テスト追加・修正 | - |
-| `chore` | ビルド・設定変更 | - |
-| `perf` | パフォーマンス改善 | PATCH |
-| `ci` | CI/CD設定変更 | - |
-| `build` | ビルドシステム変更 | - |
-| `revert` | コミット取り消し | - |
+| タイプ     | 説明               | バージョン影響 |
+| ---------- | ------------------ | -------------- |
+| `feat`     | 新機能追加         | MINOR          |
+| `fix`      | バグ修正           | PATCH          |
+| `docs`     | ドキュメント更新   | -              |
+| `style`    | コードフォーマット | -              |
+| `refactor` | リファクタリング   | -              |
+| `test`     | テスト追加・修正   | -              |
+| `chore`    | ビルド・設定変更   | -              |
+| `perf`     | パフォーマンス改善 | PATCH          |
+| `ci`       | CI/CD設定変更      | -              |
+| `build`    | ビルドシステム変更 | -              |
+| `revert`   | コミット取り消し   | -              |
 
 ### 1.3 コミット例
 
@@ -75,9 +75,7 @@ git commit -m "docs: READMEにセットアップ手順を追加"
   "version": "6.0.3",
   "description": "semantic-release plugin to create or update a changelog file",
   "main": "lib/index.js",
-  "files": [
-    "lib"
-  ],
+  "files": ["lib"],
   "scripts": {
     "semantic-release": "semantic-release"
   },
@@ -198,11 +196,7 @@ git commit -m "docs: READMEにセットアップ手順を追加"
     [
       "@semantic-release/git",
       {
-        "assets": [
-          "CHANGELOG.md",
-          "package.json",
-          "package-lock.json"
-        ],
+        "assets": ["CHANGELOG.md", "package.json", "package-lock.json"],
         "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
       }
     ],
@@ -477,7 +471,7 @@ jobs:
           channel: '#releases'
           text: |
             🚀 新しいリリースが公開されました！
-            
+
             **バージョン**: ${{ github.event.release.tag_name }}
             **リリースノート**: ${{ github.event.release.body }}
             **ダウンロード**: ${{ github.event.release.html_url }}
@@ -489,7 +483,7 @@ jobs:
         with:
           args: |
             🚀 **FridgeManager リリース**
-            
+
             **バージョン**: ${{ github.event.release.tag_name }}
             **リリースノート**: ${{ github.event.release.body }}
             **ダウンロード**: ${{ github.event.release.html_url }}
@@ -519,17 +513,20 @@ class ReleaseMonitor {
         metrics: {
           totalReleases: 0,
           averageReleaseInterval: 0,
-          lastReleaseDate: null
-        }
+          lastReleaseDate: null,
+        },
       };
     }
   }
 
   async checkForNewReleases() {
     try {
-      const latestRelease = execSync('gh release list --limit 1 --json tagName,publishedAt', { encoding: 'utf8' });
+      const latestRelease = execSync(
+        'gh release list --limit 1 --json tagName,publishedAt',
+        { encoding: 'utf8' }
+      );
       const release = JSON.parse(latestRelease)[0];
-      
+
       if (release.tagName !== this.releaseData.lastRelease) {
         this.updateReleaseData(release);
         this.generateReleaseReport();
@@ -544,12 +541,12 @@ class ReleaseMonitor {
     this.releaseData.releaseHistory.push({
       version: release.tagName,
       date: release.publishedAt,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-    
+
     this.releaseData.metrics.totalReleases++;
     this.releaseData.metrics.lastReleaseDate = release.publishedAt;
-    
+
     this.saveReleaseData();
   }
 
@@ -558,15 +555,18 @@ class ReleaseMonitor {
       timestamp: new Date().toISOString(),
       totalReleases: this.releaseData.metrics.totalReleases,
       lastRelease: this.releaseData.lastRelease,
-      releaseHistory: this.releaseData.releaseHistory.slice(-10) // 最新10件
+      releaseHistory: this.releaseData.releaseHistory.slice(-10), // 最新10件
     };
-    
+
     fs.writeFileSync('release-report.json', JSON.stringify(report, null, 2));
     console.log('リリースレポートを生成しました:', report);
   }
 
   saveReleaseData() {
-    fs.writeFileSync('release-data.json', JSON.stringify(this.releaseData, null, 2));
+    fs.writeFileSync(
+      'release-data.json',
+      JSON.stringify(this.releaseData, null, 2)
+    );
   }
 }
 
@@ -623,26 +623,33 @@ const fs = require('fs');
 
 function checkReleaseCandidate() {
   console.log('🔍 リリース候補を確認中...');
-  
+
   // 1. コミット履歴を確認
-  const commits = execSync('git log --oneline --since="1 week ago"', { encoding: 'utf8' });
+  const commits = execSync('git log --oneline --since="1 week ago"', {
+    encoding: 'utf8',
+  });
   console.log('📝 最近のコミット:');
   console.log(commits);
-  
+
   // 2. 変更されたファイルを確認
-  const changedFiles = execSync('git diff --name-only HEAD~5..HEAD', { encoding: 'utf8' });
+  const changedFiles = execSync('git diff --name-only HEAD~5..HEAD', {
+    encoding: 'utf8',
+  });
   console.log('📁 変更されたファイル:');
   console.log(changedFiles);
-  
+
   // 3. パッケージバージョンを確認
   const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
   console.log('📦 現在のバージョン:', packageJson.version);
-  
+
   // 4. リリースノートを生成
-  const releaseNotes = execSync('npx conventional-changelog -p angular -i CHANGELOG.md -s', { encoding: 'utf8' });
+  const releaseNotes = execSync(
+    'npx conventional-changelog -p angular -i CHANGELOG.md -s',
+    { encoding: 'utf8' }
+  );
   console.log('📋 リリースノート:');
   console.log(releaseNotes);
-  
+
   console.log('✅ リリース候補の確認が完了しました！');
 }
 
@@ -673,40 +680,43 @@ class ReleaseMetrics {
         featureReleases: 0,
         bugFixReleases: 0,
         patchReleases: 0,
-        averageReleaseInterval: 0
+        averageReleaseInterval: 0,
       };
     }
   }
 
   calculateMetrics() {
-    const releases = execSync('gh release list --json tagName,publishedAt', { encoding: 'utf8' });
+    const releases = execSync('gh release list --json tagName,publishedAt', {
+      encoding: 'utf8',
+    });
     const releaseList = JSON.parse(releases);
-    
+
     this.metrics.totalReleases = releaseList.length;
-    
+
     // リリース頻度を計算
     const intervals = [];
     for (let i = 1; i < releaseList.length; i++) {
-      const prevDate = new Date(releaseList[i-1].publishedAt);
+      const prevDate = new Date(releaseList[i - 1].publishedAt);
       const currDate = new Date(releaseList[i].publishedAt);
       const interval = (currDate - prevDate) / (1000 * 60 * 60 * 24); // 日数
       intervals.push(interval);
     }
-    
-    this.metrics.averageReleaseInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
-    
+
+    this.metrics.averageReleaseInterval =
+      intervals.reduce((a, b) => a + b, 0) / intervals.length;
+
     // リリースタイプを分析
-    releaseList.forEach(release => {
+    releaseList.forEach((release) => {
       const version = release.tagName.replace('v', '');
       const [major, minor, patch] = version.split('.').map(Number);
-      
+
       if (patch === 0 && minor === 0) {
         this.metrics.featureReleases++;
       } else if (patch > 0) {
         this.metrics.patchReleases++;
       }
     });
-    
+
     this.saveMetrics();
     this.generateReport();
   }
@@ -719,17 +729,23 @@ class ReleaseMetrics {
         totalReleases: this.metrics.totalReleases,
         averageReleaseInterval: Math.round(this.metrics.averageReleaseInterval),
         featureReleases: this.metrics.featureReleases,
-        patchReleases: this.metrics.patchReleases
-      }
+        patchReleases: this.metrics.patchReleases,
+      },
     };
-    
-    fs.writeFileSync('release-metrics-report.json', JSON.stringify(report, null, 2));
+
+    fs.writeFileSync(
+      'release-metrics-report.json',
+      JSON.stringify(report, null, 2)
+    );
     console.log('📊 リリースメトリクスレポート:');
     console.log(JSON.stringify(report.summary, null, 2));
   }
 
   saveMetrics() {
-    fs.writeFileSync('release-metrics.json', JSON.stringify(this.metrics, null, 2));
+    fs.writeFileSync(
+      'release-metrics.json',
+      JSON.stringify(this.metrics, null, 2)
+    );
   }
 }
 

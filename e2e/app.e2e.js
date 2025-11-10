@@ -15,7 +15,7 @@ describe('FridgeManager App', () => {
   it('ボタンを押すとダイアログが表示される', async () => {
     // ボタンをタップ
     await element(by.id('dialog-button')).tap();
-    
+
     // ダイアログが表示されることを確認
     await expect(element(by.text('メッセージ'))).toBeVisible();
     await expect(element(by.text('ボタンが押されました！'))).toBeVisible();
@@ -25,7 +25,7 @@ describe('FridgeManager App', () => {
   it('ダイアログのメッセージが正しく表示される', async () => {
     // ボタンをタップ
     await element(by.id('dialog-button')).tap();
-    
+
     // ダイアログのタイトルとメッセージを確認
     await expect(element(by.text('メッセージ'))).toBeVisible();
     await expect(element(by.text('ボタンが押されました！'))).toBeVisible();
@@ -34,13 +34,13 @@ describe('FridgeManager App', () => {
   it('OKボタンを押すとダイアログが閉じる', async () => {
     // ボタンをタップ
     await element(by.id('dialog-button')).tap();
-    
+
     // ダイアログが表示されることを確認
     await expect(element(by.text('メッセージ'))).toBeVisible();
-    
+
     // OKボタンをタップ
     await element(by.text('OK')).tap();
-    
+
     // ダイアログが閉じることを確認（ダイアログの要素が見えなくなる）
     await expect(element(by.text('メッセージ'))).not.toBeVisible();
   });

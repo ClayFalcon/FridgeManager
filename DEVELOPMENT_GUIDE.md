@@ -185,14 +185,14 @@ MAJOR.MINOR.PATCH
 
 ### 自動バージョン判定
 
-| コミットタイプ | バージョン影響 |
-|----------------|----------------|
-| `feat` | MINOR |
-| `fix` | PATCH |
-| `perf` | PATCH |
-| `revert` | PATCH |
-| `feat!` | MAJOR |
-| `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `build` | なし |
+| コミットタイプ                                              | バージョン影響 |
+| ----------------------------------------------------------- | -------------- |
+| `feat`                                                      | MINOR          |
+| `fix`                                                       | PATCH          |
+| `perf`                                                      | PATCH          |
+| `revert`                                                    | PATCH          |
+| `feat!`                                                     | MAJOR          |
+| `docs`, `style`, `refactor`, `test`, `chore`, `ci`, `build` | なし           |
 
 ### リリースフロー
 
@@ -309,29 +309,32 @@ npm run test:performance
 ### よくある問題
 
 1. **Detoxテスト失敗**
+
    ```bash
    # Androidエミュレーター確認
    adb devices
-   
+
    # iOSシミュレーター確認
    xcrun simctl list devices
    ```
 
 2. **Firebase接続エラー**
+
    ```bash
    # 環境変数確認
    npm run check:env
-   
+
    # Firebase再ログイン
    firebase logout
    firebase login
    ```
 
 3. **ビルドエラー**
+
    ```bash
    # キャッシュクリア
    npm run clean
-   
+
    # 依存関係再インストール
    rm -rf node_modules
    npm install
@@ -373,12 +376,14 @@ npm run logs
 ### 新機能開発の場合
 
 1. **準備**
+
    ```bash
    git pull origin main
    git checkout -b feature/new-feature
    ```
 
 2. **開発**
+
    ```bash
    npm run start:dev
    # 開発作業
@@ -386,12 +391,14 @@ npm run logs
    ```
 
 3. **テスト**
+
    ```bash
    npm run test:detox:build
    npm run test:detox:test
    ```
 
 4. **コミット・プッシュ**
+
    ```bash
    git add .
    git commit -m "feat: 新機能の実装"
@@ -411,11 +418,13 @@ npm run logs
 ### 緊急修正の場合
 
 1. **ホットフィックス**
+
    ```bash
    git checkout -b hotfix/critical-bug
    ```
 
 2. **修正・テスト**
+
    ```bash
    # 修正作業
    npm run test:all

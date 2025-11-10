@@ -1,12 +1,25 @@
 {
   "extends": ["expo", "prettier"],
-  "plugins": ["prettier"],
+  "plugins": ["prettier", "react-native"],
   "rules": {
     "prettier/prettier": "error",
     "react-native/no-inline-styles": "warn",
     "react-native/no-color-literals": "warn"
   },
   "env": {
-    "jest": true
-  }
+    "jest": true,
+    "node": true
+  },
+  "overrides": [
+    {
+      "files": ["e2e/**/*.js"],
+      "globals": {
+        "device": "readonly",
+        "element": "readonly",
+        "by": "readonly",
+        "waitFor": "readonly",
+        "expect": "readonly"
+      }
+    }
+  ]
 }

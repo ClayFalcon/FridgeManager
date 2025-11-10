@@ -12,6 +12,13 @@ buildscript {
   }
 }
 
+ext {
+    minSdkVersion = 24
+    compileSdkVersion = 36
+    targetSdkVersion = 36
+    ndkVersion = "27.0.12077973"
+}
+
 allprojects {
   repositories {
     google()

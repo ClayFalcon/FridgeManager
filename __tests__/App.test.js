@@ -14,7 +14,7 @@ describe('App Component', () => {
 
   it('アプリが正常にレンダリングされる', () => {
     const { getByText } = render(<App />);
-    
+
     expect(getByText('FridgeManager')).toBeTruthy();
     expect(getByText('ダイアログを表示')).toBeTruthy();
   });
@@ -22,9 +22,9 @@ describe('App Component', () => {
   it('ボタンを押すとダイアログが表示される', async () => {
     const { getByText } = render(<App />);
     const button = getByText('ダイアログを表示');
-    
+
     fireEvent.press(button);
-    
+
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
         'メッセージ',
@@ -43,9 +43,9 @@ describe('App Component', () => {
   it('ダイアログのメッセージが正しく表示される', async () => {
     const { getByText } = render(<App />);
     const button = getByText('ダイアログを表示');
-    
+
     fireEvent.press(button);
-    
+
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
         'メッセージ',
@@ -59,9 +59,9 @@ describe('App Component', () => {
   it('ダイアログのタイトルが正しく設定される', async () => {
     const { getByText } = render(<App />);
     const button = getByText('ダイアログを表示');
-    
+
     fireEvent.press(button);
-    
+
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
         'メッセージ',
@@ -75,13 +75,13 @@ describe('App Component', () => {
   it('OKボタンが正しく設定される', async () => {
     const { getByText } = render(<App />);
     const button = getByText('ダイアログを表示');
-    
+
     fireEvent.press(button);
-    
+
     await waitFor(() => {
       const callArgs = Alert.alert.mock.calls[0];
       const buttons = callArgs[2];
-      
+
       expect(buttons).toHaveLength(1);
       expect(buttons[0]).toEqual({
         text: 'OK',
@@ -93,13 +93,13 @@ describe('App Component', () => {
   it('ダイアログがキャンセル不可に設定される', async () => {
     const { getByText } = render(<App />);
     const button = getByText('ダイアログを表示');
-    
+
     fireEvent.press(button);
-    
+
     await waitFor(() => {
       const callArgs = Alert.alert.mock.calls[0];
       const options = callArgs[3];
-      
+
       expect(options).toEqual({ cancelable: false });
     });
   });

@@ -90,12 +90,13 @@ android {
     namespace 'com.clayfalcon.fridgemanager'
     defaultConfig {
         applicationId 'com.clayfalcon.fridgemanager'
-        minSdkVersion 24
+        minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     signingConfigs {
         debug {
@@ -179,4 +180,8 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    // AndroidX Test dependencies for Detox
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 }

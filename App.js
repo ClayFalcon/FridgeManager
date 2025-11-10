@@ -18,8 +18,14 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      <Text testID="app-title" style={styles.title}>FridgeManager</Text>
-      <TouchableOpacity testID="dialog-button" style={styles.button} onPress={showDialog}>
+      <Text testID="app-title" style={styles.title}>
+        FridgeManager
+      </Text>
+      <TouchableOpacity
+        testID="dialog-button"
+        style={styles.button}
+        onPress={showDialog}
+      >
         <Text style={styles.buttonText}>ダイアログを表示</Text>
       </TouchableOpacity>
     </View>

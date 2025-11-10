@@ -117,9 +117,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   test:
@@ -132,7 +132,7 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
       - run: npm run test:coverage
-      
+
   detox-android:
     runs-on: ubuntu-latest
     steps:
@@ -143,7 +143,7 @@ jobs:
       - run: npm ci
       - run: npm run test:detox:build
       - run: npm run test:detox:test
-      
+
   detox-ios:
     runs-on: macos-latest
     steps:
@@ -336,29 +336,32 @@ npm run firebase:deploy:rules:prod
 ### 8.1 よくある問題
 
 1. **Detoxテスト失敗**
+
    ```bash
    # Androidエミュレーター確認
    adb devices
-   
+
    # iOSシミュレーター確認
    xcrun simctl list devices
    ```
 
 2. **Firebase接続エラー**
+
    ```bash
    # 環境変数確認
    npm run check:env
-   
+
    # Firebase再ログイン
    firebase logout
    firebase login
    ```
 
 3. **ビルドエラー**
+
    ```bash
    # キャッシュクリア
    npm run clean
-   
+
    # 依存関係再インストール
    rm -rf node_modules
    npm install

@@ -9,98 +9,108 @@ FridgeManagerのDetox自動テスト設定とCI/CDパイプラインの詳細設
 ### detox.config.js
 
 ```javascript
-const { DetoxCircusEnvironment, SpecReporter, WorkerAssignReporter } = require('detox/runners/jest');
+const {
+  DetoxCircusEnvironment,
+  SpecReporter,
+  WorkerAssignReporter,
+} = require('detox/runners/jest');
 
 const config = {
   testRunner: {
     args: {
-      '$0': 'jest',
-      config: 'e2e/config.json'
+      $0: 'jest',
+      config: 'e2e/config.json',
     },
     jest: {
-      setupFilesAfterEnv: ['<rootDir>/e2e/init.js']
-    }
+      setupFilesAfterEnv: ['<rootDir>/e2e/init.js'],
+    },
   },
   apps: {
     'android.debug': {
       type: 'android.apk',
       binaryPath: 'android/app/build/outputs/apk/debug/app-debug.apk',
-      build: 'cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug',
+      build:
+        'cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug',
       reversePorts: [
         {
           host: 8081,
-          device: 8081
-        }
-      ]
+          device: 8081,
+        },
+      ],
     },
     'android.release': {
       type: 'android.apk',
       binaryPath: 'android/app/build/outputs/apk/release/app-release.apk',
-      build: 'cd android && ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release'
+      build:
+        'cd android && ./gradlew assembleRelease assembleAndroidTest -DtestBuildType=release',
     },
     'ios.debug': {
       type: 'ios.app',
-      binaryPath: 'ios/build/Build/Products/Debug-iphonesimulator/FridgeManager.app',
-      build: 'cd ios && xcodebuild -workspace FridgeManager.xcworkspace -scheme FridgeManager -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build',
+      binaryPath:
+        'ios/build/Build/Products/Debug-iphonesimulator/FridgeManager.app',
+      build:
+        'cd ios && xcodebuild -workspace FridgeManager.xcworkspace -scheme FridgeManager -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build',
       reversePorts: [
         {
           host: 8081,
-          device: 8081
-        }
-      ]
+          device: 8081,
+        },
+      ],
     },
     'ios.release': {
       type: 'ios.app',
-      binaryPath: 'ios/build/Build/Products/Release-iphonesimulator/FridgeManager.app',
-      build: 'cd ios && xcodebuild -workspace FridgeManager.xcworkspace -scheme FridgeManager -configuration Release -sdk iphonesimulator -derivedDataPath ios/build'
-    }
+      binaryPath:
+        'ios/build/Build/Products/Release-iphonesimulator/FridgeManager.app',
+      build:
+        'cd ios && xcodebuild -workspace FridgeManager.xcworkspace -scheme FridgeManager -configuration Release -sdk iphonesimulator -derivedDataPath ios/build',
+    },
   },
   devices: {
     simulator: {
       type: 'ios.simulator',
       device: {
-        type: 'iPhone 14'
-      }
+        type: 'iPhone 14',
+      },
     },
     attached: {
       type: 'android.attached',
       device: {
-        adbName: '.*'
-      }
+        adbName: '.*',
+      },
     },
     emulator: {
       type: 'android.emulator',
       device: {
-        avdName: 'Pixel_4_API_30'
-      }
-    }
+        avdName: 'Pixel_4_API_30',
+      },
+    },
   },
   configurations: {
     'ios.sim.debug': {
       device: 'simulator',
-      app: 'ios.debug'
+      app: 'ios.debug',
     },
     'ios.sim.release': {
       device: 'simulator',
-      app: 'ios.release'
+      app: 'ios.release',
     },
     'android.emu.debug': {
       device: 'emulator',
-      app: 'android.debug'
+      app: 'android.debug',
     },
     'android.emu.release': {
       device: 'emulator',
-      app: 'android.release'
+      app: 'android.release',
     },
     'android.att.debug': {
       device: 'attached',
-      app: 'android.debug'
+      app: 'android.debug',
     },
     'android.att.release': {
       device: 'attached',
-      app: 'android.release'
-    }
-  }
+      app: 'android.release',
+    },
+  },
 };
 
 module.exports = config;
@@ -138,18 +148,22 @@ module.exports = config;
 ### e2e/init.js
 
 ```javascript
-const { DetoxCircusEnvironment, SpecReporter, WorkerAssignReporter } = require('detox/runners/jest');
+const {
+  DetoxCircusEnvironment,
+  SpecReporter,
+  WorkerAssignReporter,
+} = require('detox/runners/jest');
 
 const config = {
   testRunner: {
     args: {
-      '$0': 'jest',
-      config: 'e2e/config.json'
+      $0: 'jest',
+      config: 'e2e/config.json',
     },
     jest: {
-      setupFilesAfterEnv: ['<rootDir>/e2e/init.js']
-    }
-  }
+      setupFilesAfterEnv: ['<rootDir>/e2e/init.js'],
+    },
+  },
 };
 
 module.exports = config;
@@ -172,16 +186,16 @@ describe('認証フロー', () => {
   it('ユーザー登録が正常に動作する', async () => {
     // ユーザー登録画面に移動
     await element(by.id('signup-button')).tap();
-    
+
     // メールアドレス入力
     await element(by.id('email-input')).typeText('test@example.com');
-    
+
     // パスワード入力
     await element(by.id('password-input')).typeText('password123');
-    
+
     // 登録ボタンタップ
     await element(by.id('register-button')).tap();
-    
+
     // 成功メッセージ確認
     await expect(element(by.id('success-message'))).toBeVisible();
   });
@@ -189,16 +203,16 @@ describe('認証フロー', () => {
   it('ログインが正常に動作する', async () => {
     // ログイン画面に移動
     await element(by.id('login-button')).tap();
-    
+
     // メールアドレス入力
     await element(by.id('email-input')).typeText('test@example.com');
-    
+
     // パスワード入力
     await element(by.id('password-input')).typeText('password123');
-    
+
     // ログインボタンタップ
     await element(by.id('login-submit-button')).tap();
-    
+
     // ホーム画面に遷移することを確認
     await expect(element(by.id('home-screen'))).toBeVisible();
   });
@@ -222,16 +236,16 @@ describe('冷蔵庫管理', () => {
   it('冷蔵庫の在庫状況を更新できる', async () => {
     // 冷蔵庫画面に移動
     await element(by.id('refrigerator-tab')).tap();
-    
+
     // 食品アイテムをタップ
     await element(by.id('food-item-milk')).tap();
-    
+
     // 在庫状況を「ちょっとある」に変更
     await element(by.id('status-partial')).tap();
-    
+
     // 保存ボタンタップ
     await element(by.id('save-button')).tap();
-    
+
     // 更新が反映されることを確認
     await expect(element(by.id('food-item-milk'))).toHaveValue('ちょっとある');
   });
@@ -239,19 +253,19 @@ describe('冷蔵庫管理', () => {
   it('新しい食品を追加できる', async () => {
     // 食品追加ボタンタップ
     await element(by.id('add-food-button')).tap();
-    
+
     // 食品名入力
     await element(by.id('food-name-input')).typeText('りんご');
-    
+
     // カテゴリ選択
     await element(by.id('category-vegetables')).tap();
-    
+
     // 保管場所選択
     await element(by.id('storage-refrigerator')).tap();
-    
+
     // 追加ボタンタップ
     await element(by.id('add-submit-button')).tap();
-    
+
     // 食品が追加されることを確認
     await expect(element(by.id('food-item-apple'))).toBeVisible();
   });
@@ -267,9 +281,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   NODE_VERSION: '18'
@@ -283,22 +297,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run unit tests
         run: npm run test:unit
-        
+
       - name: Generate coverage report
         run: npm run test:coverage
-        
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -310,28 +324,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '11'
-          
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
-        
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build Android app
         run: npm run test:detox:build
-        
+
       - name: Run Detox tests
         run: npm run test:detox:test
         env:
@@ -343,19 +357,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build iOS app
         run: npm run test:detox:ios:build
-        
+
       - name: Run Detox tests
         run: npm run test:detox:ios:test
         env:
@@ -367,22 +381,22 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run ESLint
         run: npm run lint
-        
+
       - name: Run TypeScript check
         run: npm run type-check
-        
+
       - name: Check code formatting
         run: npm run format:check
 ```
@@ -407,16 +421,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Run all tests
         run: npm run test:all
 
@@ -427,28 +441,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Setup Java
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: '11'
-          
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
-        
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build Android release
         run: npm run build:android:prod
-        
+
       - name: Upload Android APK
         uses: actions/upload-artifact@v3
         with:
@@ -462,19 +476,19 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-        
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          
+
       - name: Install dependencies
         run: npm ci
-        
+
       - name: Build iOS release
         run: npm run build:ios:prod
-        
+
       - name: Upload iOS build
         uses: actions/upload-artifact@v3
         with:
@@ -490,12 +504,12 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          
+
       - name: Generate changelog
         run: |
           npm install -g conventional-changelog-cli
           conventional-changelog -p angular -i CHANGELOG.md -s
-          
+
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
@@ -560,24 +574,24 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   testMatch: [
     '**/__tests__/**/*.(js|jsx|ts|tsx)',
-    '**/*.(test|spec).(js|jsx|ts|tsx)'
+    '**/*.(test|spec).(js|jsx|ts|tsx)',
   ],
   collectCoverageFrom: [
     'src/**/*.{js,jsx,ts,tsx}',
     '!src/**/*.d.ts',
-    '!src/**/*.stories.{js,jsx,ts,tsx}'
+    '!src/**/*.stories.{js,jsx,ts,tsx}',
   ],
   coverageThreshold: {
     global: {
       branches: 80,
       functions: 80,
       lines: 80,
-      statements: 80
-    }
+      statements: 80,
+    },
   },
   moduleNameMapping: {
-    '^@/(.*)$': '<rootDir>/src/$1'
-  }
+    '^@/(.*)$': '<rootDir>/src/$1',
+  },
 };
 ```
 
