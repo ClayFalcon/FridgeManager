@@ -1,0 +1,153 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '18'
+  JAVA_VERSION: '17'
+  ANDROID_API_LEVEL: 36
+  ANDROID_BUILD_TOOLS: '36.0.0'
+
+jobs:
+  # ユニットテスト
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run unit tests
+        run: npm run test:unit
+        
+      - name: Generate coverage report
+        run: npm run test:coverage
+        continue-on-error: true
+        
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          fail_ci_if_error: false
+
+  # Detox Androidテスト
+  detox-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+          
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Android app
+        run: |
+          cd android
+          ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          
+      - name: Run Detox tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ env.ANDROID_API_LEVEL }}
+          arch: x86_64
+          profile: Nexus 6
+          avd-name: test_avd
+          script: |
+            npm run test:detox:test:ci
+        env:
+          DETOX_CONFIGURATION: android.emu.debug.ci
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+
+  # Detox iOSテスト
+  detox-ios:
+    runs-on: macos-14
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install CocoaPods dependencies
+        run: |
+          cd ios
+          pod install
+        continue-on-error: true
+        
+      - name: Build iOS app
+        run: npm run test:detox:ios:build
+        continue-on-error: true
+        
+      - name: Run Detox tests
+        run: npm run test:detox:ios:test
+        env:
+          DETOX_CONFIGURATION: ios.sim.debug
+        continue-on-error: true
+
+  # コード品質チェック
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run ESLint
+        run: npm run lint
+        continue-on-error: true
+        
+      - name: Run TypeScript check
+        run: npm run type-check
+        continue-on-error: true
+        
+      - name: Check code formatting
+        run: npm run format:check
+        continue-on-error: true
+
