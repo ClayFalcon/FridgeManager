@@ -9,8 +9,8 @@ on:
 env:
   NODE_VERSION: '20'
   JAVA_VERSION: '17'
-  ANDROID_API_LEVEL: 35
-  ANDROID_BUILD_TOOLS: '35.0.0'
+  ANDROID_API_LEVEL: 33
+  ANDROID_BUILD_TOOLS: '33.0.0'
 
 jobs:
   # ユニットテスト
@@ -42,10 +42,10 @@ jobs:
           file: ./coverage/lcov.info
           fail_ci_if_error: false
 
-  # Detox Androidテスト
-  detox-android:
+  # Android APKビルド
+  build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,16 +65,15 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Check available system images
-        run: |
-          echo "=== Available system images (x86_64) ==="
-          sdkmanager --list | grep "system-images" | grep "x86_64" | head -20
-          echo ""
-          echo "=== Checking for API 35 and 36 ==="
-          sdkmanager --list | grep "system-images" | grep -E "(android-35|android-36)" | grep "x86_64" || echo "API 35 or 36 system images not found in default channel"
-        env:
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
-          ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Install dependencies
         run: npm ci
@@ -90,15 +89,49 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
 
+  # Detox Androidテスト
+  detox-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build-android
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
       - name: Run Detox tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ env.ANDROID_API_LEVEL }}
+          target: google_apis
           arch: x86_64
-          profile: Nexus 6
+          profile: Nexus 5
+          ram-size: 2048M
+          disk-size: 5G
           avd-name: test_avd
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            npm run test:detox:test:ci
+            npm run test:detox:test:ci -- --max-workers 1 --record-logs all --record-videos none --take-screenshots none
         env:
           DETOX_CONFIGURATION: android.emu.debug.ci
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
@@ -137,7 +170,7 @@ jobs:
         continue-on-error: true
 
       - name: Run Detox tests
-        run: npm run test:detox:ios:test
+        run: npm run test:detox:ios:test -- --max-workers 1 --record-logs all --record-videos none --take-screenshots none
         env:
           DETOX_CONFIGURATION: ios.sim.debug
         continue-on-error: true
