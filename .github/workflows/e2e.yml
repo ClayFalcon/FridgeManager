@@ -48,8 +48,8 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Build Detox APK
-        run: npm run test:detox:build
+      - name: Build Detox APK (release)
+        run: npm run test:detox:build:ci
 
       - name: Run E2E tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
