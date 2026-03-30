@@ -8,17 +8,5 @@
   "bail": false,
   "maxWorkers": 1,
   "globalSetup": "detox/runners/jest/globalSetup",
-  "globalTeardown": "detox/runners/jest/globalTeardown",
-  "testEnvironmentOptions": {
-    "eventListeners": [
-      {
-        "event": "test_done",
-        "handler": "detox/runners/jest/eventListeners/testDone"
-      },
-      {
-        "event": "test_start",
-        "handler": "detox/runners/jest/eventListeners/testStart"
-      }
-    ]
-  }
+  "globalTeardown": "detox/runners/jest/globalTeardown"
 }

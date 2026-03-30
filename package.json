@@ -14,6 +14,7 @@
     "test:unit": "jest --testPathPattern=__tests__",
     "test:detox:build": "detox build --configuration android.emu.debug",
     "test:detox:test": "detox test --configuration android.emu.debug",
+    "test:detox:test:ci": "detox test --configuration android.att.debug",
     "test:detox:ios:build": "detox build --configuration ios.sim.debug",
     "test:detox:ios:test": "detox test --configuration ios.sim.debug",
     "test:all": "npm run test:unit && npm run test:detox:test",
@@ -89,7 +90,7 @@
       "android.debug": {
         "type": "android.apk",
         "binaryPath": "android/app/build/outputs/apk/debug/app-debug.apk",
-        "build": "cd android && gradlew.bat assembleDebug assembleAndroidTest -DtestBuildType=debug",
+        "build": "cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug",
         "reversePorts": [
           {
             "host": 8081,
@@ -119,7 +120,13 @@
       "emulator": {
         "type": "android.emulator",
         "device": {
-          "avdName": "Pixel_4_API_30"
+          "avdName": "Pixel_5_API_33"
+        }
+      },
+      "attached": {
+        "type": "android.attached",
+        "device": {
+          "adbName": ".*"
         }
       }
     },
@@ -130,6 +137,10 @@
       },
       "android.emu.debug": {
         "device": "emulator",
+        "app": "android.debug"
+      },
+      "android.att.debug": {
+        "device": "attached",
         "app": "android.debug"
       }
     }
