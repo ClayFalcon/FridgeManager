@@ -51,15 +51,25 @@ jobs:
       - name: Build Detox APK (release)
         run: npm run test:detox:build:ci
 
+      - name: Stop Gradle daemons to free memory
+        run: cd android && ./gradlew --stop
+
+      - name: Check available disk and memory
+        run: |
+          df -h /
+          free -h
+
       - name: Run E2E tests on Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 33
-          target: google_apis
+          target: default
           arch: x86_64
           profile: pixel_5
           avd-name: Pixel_5_API_33
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          ram-size: 2048M
+          heap-size: 512M
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 2048
           disable-animations: true
           script: npm run test:detox:test:ci
 
