@@ -13,9 +13,9 @@
     "test": "jest",
     "test:unit": "jest --testPathPattern=__tests__",
     "test:detox:build": "detox build --configuration android.emu.debug",
-    "test:detox:build:ci": "detox build --configuration android.att.release",
+    "test:detox:build:ci": "detox build --configuration android.att.ci",
     "test:detox:test": "detox test --configuration android.emu.debug",
-    "test:detox:test:ci": "detox test --configuration android.att.release",
+    "test:detox:test:ci": "detox test --configuration android.att.ci",
     "test:detox:ios:build": "detox build --configuration ios.sim.debug",
     "test:detox:ios:test": "detox test --configuration ios.sim.debug",
     "test:all": "npm run test:unit && npm run test:detox:test",
@@ -105,6 +105,12 @@
         "testBinaryPath": "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
         "build": "cd android && ./gradlew assembleRelease assembleDebugAndroidTest"
       },
+      "android.ci": {
+        "type": "android.apk",
+        "binaryPath": "android/app/build/outputs/apk/debug/app-debug.apk",
+        "testBinaryPath": "android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk",
+        "build": "cd android && ./gradlew assembleDebug assembleDebugAndroidTest -PdetoxCI=true"
+      },
       "ios.debug": {
         "type": "ios.app",
         "binaryPath": "ios/build/Build/Products/Debug-iphonesimulator/FridgeManager.app",
@@ -153,6 +159,10 @@
       "android.att.release": {
         "device": "attached",
         "app": "android.release"
+      },
+      "android.att.ci": {
+        "device": "attached",
+        "app": "android.ci"
       }
     }
   },
