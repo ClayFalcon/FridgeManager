@@ -71,7 +71,14 @@ jobs:
           heap-size: 512M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 2048
           disable-animations: true
-          script: npm run test:detox:test:ci
+          script: |
+            echo "=== Installing APKs ==="
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            echo "=== Verifying installation ==="
+            adb shell pm list packages | grep fridgemanager || echo "WARNING: package not found"
+            echo "=== Running E2E tests ==="
+            npm run test:detox:test:ci
 
       - name: Upload Detox artifacts on failure
         if: failure()
