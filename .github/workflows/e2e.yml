@@ -77,7 +77,17 @@ jobs:
             adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
             echo "=== Verifying installation ==="
             adb shell pm list packages | grep fridgemanager || echo "WARNING: package not found"
+            echo "=== Starting logcat ==="
+            adb logcat -c
+            adb logcat -v time *:W detox:V ReactNativeJS:V > /tmp/logcat.txt 2>&1 &
+            LOGCAT_PID=$!
             echo "=== Running E2E tests ==="
+            npm run test:detox:test:ci || true
+            sleep 2
+            kill $LOGCAT_PID || true
+            echo "=== Logcat output ==="
+            cat /tmp/logcat.txt
+            echo "=== Re-running to capture exit code ==="
             npm run test:detox:test:ci
 
       - name: Upload Detox artifacts on failure
