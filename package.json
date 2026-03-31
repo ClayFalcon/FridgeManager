@@ -13,9 +13,9 @@
     "test": "jest",
     "test:unit": "jest --testPathPattern=__tests__",
     "test:detox:build": "detox build --configuration android.emu.debug",
-    "test:detox:build:ci": "detox build --configuration android.att.ci",
+    "test:detox:build:ci": "detox build --configuration android.emu.ci",
     "test:detox:test": "detox test --configuration android.emu.debug",
-    "test:detox:test:ci": "detox test --configuration android.att.ci",
+    "test:detox:test:ci": "detox test --configuration android.emu.ci",
     "test:detox:ios:build": "detox build --configuration ios.sim.debug",
     "test:detox:ios:test": "detox test --configuration ios.sim.debug",
     "test:all": "npm run test:unit && npm run test:detox:test",
@@ -162,6 +162,10 @@
       },
       "android.att.ci": {
         "device": "attached",
+        "app": "android.ci"
+      },
+      "android.emu.ci": {
+        "device": "emulator",
         "app": "android.ci"
       }
     }
