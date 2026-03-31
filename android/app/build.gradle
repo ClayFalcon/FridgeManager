@@ -189,5 +189,5 @@ dependencies {
         implementation jscFlavor
     }
 
-    androidTestImplementation('com.wix:detox:+')
+    androidTestImplementation(project(path: ":detox"))
 }
