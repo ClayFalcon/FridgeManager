@@ -71,30 +71,7 @@ jobs:
           heap-size: 512M
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -memory 2048
           disable-animations: true
-          script: |
-            echo "=== Installing APKs ==="
-            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-            adb install -r android/app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-            echo "=== Verifying installation ==="
-            adb shell pm list packages | grep fridgemanager || echo "WARNING: package not found"
-            echo "=== Test instrumentation runner ==="
-            adb shell pm list instrumentation | grep fridgemanager
-            echo "=== Logcat (fatal/crash only) ==="
-            adb logcat -c
-            adb logcat -v time *:S AndroidRuntime:E DEBUG:V art:V fridgemanager:V detox:V > /tmp/logcat.txt 2>&1 &
-            LOGCAT_PID=$!
-            echo "=== Running E2E tests ==="
-            npm run test:detox:test:ci || true
-            sleep 3
-            kill $LOGCAT_PID || true
-            echo "=== Logcat output ==="
-            cat /tmp/logcat.txt
-            echo "=== am instrument test ==="
-            adb shell pm list instrumentation
-            adb shell am instrument -w com.clayfalcon.fridgemanager.test/androidx.test.runner.AndroidJUnitRunner &
-            sleep 5
-            adb shell ps -A | grep fridgemanager || echo "Process not found after manual instrument"
-            kill %1 2>/dev/null || true
+          script: npm run test:detox:test:ci
 
       - name: Upload Detox artifacts on failure
         if: failure()
