@@ -4,6 +4,12 @@ describe('FridgeManager App', () => {
   });
 
   beforeEach(async () => {
+    // Dismiss any open native dialog before reloading (e.g. Alert left open by previous test)
+    try {
+      await element(by.text('OK')).tap();
+    } catch (_) {
+      // No dialog open, ignore
+    }
     await device.reloadReactNative();
   });
 
