@@ -61,7 +61,11 @@ describe('StorageScreen', () => {
     // Android CIエミュレーターのIMEは日本語キーイベントを変換できないため ASCII 文字を使用
     await element(by.id('add-food-name-input')).typeText('TestFood');
     await element(by.id('add-food-submit')).tap();
-    await expect(element(by.text('TestFood'))).toBeVisible();
+    // 追加アイテムはリスト末尾に追加されるためスクロールしながら確認
+    await waitFor(element(by.text('TestFood')))
+      .toBeVisible()
+      .whileElement(by.id('food-list'))
+      .scroll(300, 'down');
   });
 
   it('名前が空のまま追加ボタンを押しても追加されない', async () => {
