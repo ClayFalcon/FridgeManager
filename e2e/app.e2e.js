@@ -99,6 +99,11 @@ describe('StorageScreen', () => {
     await expect(element(by.id('edit-food-sheet'))).toBeVisible();
     await element(by.id('edit-food-name-input')).clearText();
     await element(by.id('edit-food-name-input')).typeText('MilkEdited');
+    // キーボード表示でボタンが画面外に押し出されるためスクロールして表示
+    await waitFor(element(by.id('edit-food-submit')))
+      .toBeVisible()
+      .whileElement(by.id('edit-food-sheet'))
+      .scroll(300, 'down');
     await element(by.id('edit-food-submit')).tap();
     await expect(element(by.text('MilkEdited'))).toBeVisible();
   });
