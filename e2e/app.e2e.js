@@ -58,10 +58,10 @@ describe('StorageScreen', () => {
   it('食品を追加できる', async () => {
     await element(by.id('btn-add-food')).tap();
     await expect(element(by.id('add-food-sheet'))).toBeVisible();
-    // Android CIエミュレーターのIMEは日本語キーイベントを変換できないため replaceText を使用
-    await element(by.id('add-food-name-input')).replaceText('テスト食品');
+    // Android CIエミュレーターのIMEは日本語キーイベントを変換できないため ASCII 文字を使用
+    await element(by.id('add-food-name-input')).typeText('TestFood');
     await element(by.id('add-food-submit')).tap();
-    await expect(element(by.text('テスト食品'))).toBeVisible();
+    await expect(element(by.text('TestFood'))).toBeVisible();
   });
 
   it('名前が空のまま追加ボタンを押しても追加されない', async () => {
