@@ -26,7 +26,8 @@ describe('StorageScreen', () => {
 
   it('冷蔵庫タブに初期食品が表示される', async () => {
     await expect(element(by.text('牛乳'))).toBeVisible();
-    await expect(element(by.text('卵'))).toBeVisible();
+    // 「卵」はタグにも同名があるため testID で確認
+    await expect(element(by.id('food-item-2'))).toBeVisible();
   });
 
   // ── タブ切り替え ──────────────────────────────────────
@@ -57,7 +58,8 @@ describe('StorageScreen', () => {
   it('食品を追加できる', async () => {
     await element(by.id('btn-add-food')).tap();
     await expect(element(by.id('add-food-sheet'))).toBeVisible();
-    await element(by.id('add-food-name-input')).typeText('テスト食品');
+    // Android CIエミュレーターのIMEは日本語キーイベントを変換できないため replaceText を使用
+    await element(by.id('add-food-name-input')).replaceText('テスト食品');
     await element(by.id('add-food-submit')).tap();
     await expect(element(by.text('テスト食品'))).toBeVisible();
   });
