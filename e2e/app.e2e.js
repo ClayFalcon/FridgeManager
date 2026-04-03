@@ -4,9 +4,10 @@ describe('StorageScreen', () => {
   });
 
   beforeEach(async () => {
-    try {
-      await element(by.text('OK')).tap();
-    } catch (_) {}
+    // 開きっぱなしのネイティブダイアログを閉じてからリロード
+    for (const label of ['OK', 'キャンセル', '削除する']) {
+      try { await element(by.text(label)).tap(); } catch (_) {}
+    }
     await device.reloadReactNative();
   });
 
@@ -87,6 +88,8 @@ describe('StorageScreen', () => {
     await element(by.id('btn-delete-mode')).tap();
     await expect(element(by.id('delete-btn-1'))).toBeVisible();
     await element(by.id('delete-btn-1')).tap();
+    // 確認ダイアログを承認
+    await element(by.text('削除する')).tap();
     await expect(element(by.text('牛乳'))).not.toBeVisible();
   });
 
