@@ -12,6 +12,7 @@ import rawInitialData from '../data/initialFoodItems.json';
 import LocationTabs from '../components/storage/LocationTabs';
 import FoodItemCard from '../components/storage/FoodItemCard';
 import AddFoodModal from '../components/storage/AddFoodModal';
+import EditFoodModal from '../components/storage/EditFoodModal';
 
 const initialItems = rawInitialData as FoodItem[];
 
@@ -23,7 +24,8 @@ export default function StorageScreen() {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isSimpleGlobal, setIsSimpleGlobal] = useState(false);
   const [simpleOverrides, setSimpleOverrides] = useState<Record<string, boolean>>({});
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
 
   const visibleItems = items.filter((item) => item.location === selectedLocation);
 
@@ -43,6 +45,11 @@ export default function StorageScreen() {
 
   function handleDelete(id: string) {
     setItems((prev) => prev.filter((item) => item.id !== id));
+  }
+
+  function handleEdit(updated: FoodItem) {
+    setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    setEditingItem(null);
   }
 
   function handleToggleView(id: string) {
@@ -83,7 +90,7 @@ export default function StorageScreen() {
         <TouchableOpacity
           testID="btn-add-food"
           style={styles.btnAdd}
-          onPress={() => setIsModalVisible(true)}
+          onPress={() => setIsAddModalVisible(true)}
         >
           <Text style={styles.btnAddText}>＋ 食品追加</Text>
         </TouchableOpacity>
@@ -128,6 +135,7 @@ export default function StorageScreen() {
             showDeleteButton={isDeleteMode}
             onStockChange={handleStockChange}
             onDelete={handleDelete}
+            onEdit={setEditingItem}
             onToggleView={() => handleToggleView(item.id)}
           />
         )}
@@ -135,10 +143,18 @@ export default function StorageScreen() {
 
       {/* 食品追加モーダル */}
       <AddFoodModal
-        visible={isModalVisible}
+        visible={isAddModalVisible}
         location={selectedLocation}
         onAdd={handleAdd}
-        onClose={() => setIsModalVisible(false)}
+        onClose={() => setIsAddModalVisible(false)}
+      />
+
+      {/* 食品編集モーダル */}
+      <EditFoodModal
+        visible={editingItem !== null}
+        item={editingItem}
+        onSave={handleEdit}
+        onClose={() => setEditingItem(null)}
       />
     </SafeAreaView>
   );

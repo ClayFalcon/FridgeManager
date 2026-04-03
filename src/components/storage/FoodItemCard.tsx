@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { FoodItem, StockLevel } from '../../types/food';
 import StockLevelSelector from './StockLevelSelector';
 
@@ -9,6 +9,7 @@ interface Props {
   showDeleteButton: boolean;
   onStockChange: (id: string, level: StockLevel) => void;
   onDelete: (id: string) => void;
+  onEdit: (item: FoodItem) => void;
   onToggleView: () => void;
 }
 
@@ -25,14 +26,26 @@ export default function FoodItemCard({
   showDeleteButton,
   onStockChange,
   onDelete,
+  onEdit,
   onToggleView,
 }: Props) {
   const expiry = formatExpiry(item.expiryDate);
 
+  function handleDeletePress() {
+    Alert.alert(
+      '削除確認',
+      `「${item.name}」を削除しますか？`,
+      [
+        { text: 'キャンセル', style: 'cancel' },
+        { text: '削除する', style: 'destructive', onPress: () => onDelete(item.id) },
+      ],
+    );
+  }
+
   return (
     <View style={styles.card} testID={`food-item-${item.id}`}>
       <View style={styles.main}>
-        {/* ヘッダー行: アイコン + 名前 + 詳細/簡易切替 */}
+        {/* ヘッダー行: アイコン + 名前 + 編集 + 詳細/簡易切替 */}
         <View style={styles.head}>
           <View style={styles.nameRow}>
             <View style={styles.iconBox}>
@@ -40,14 +53,24 @@ export default function FoodItemCard({
             </View>
             <Text style={styles.name}>{item.name}</Text>
           </View>
-          <TouchableOpacity
-            testID={`view-toggle-${item.id}`}
-            style={styles.toggleBtn}
-            onPress={onToggleView}
-            accessibilityLabel={isSimple ? `${item.name}を詳細表示` : `${item.name}を簡易表示`}
-          >
-            <Text style={styles.toggleLabel}>{isSimple ? '詳細' : '簡易'}</Text>
-          </TouchableOpacity>
+          <View style={styles.headButtons}>
+            <TouchableOpacity
+              testID={`edit-btn-${item.id}`}
+              style={styles.iconBtn}
+              onPress={() => onEdit(item)}
+              accessibilityLabel={`${item.name}を編集`}
+            >
+              <Text style={styles.iconBtnText}>✏️</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID={`view-toggle-${item.id}`}
+              style={styles.toggleBtn}
+              onPress={onToggleView}
+              accessibilityLabel={isSimple ? `${item.name}を詳細表示` : `${item.name}を簡易表示`}
+            >
+              <Text style={styles.toggleLabel}>{isSimple ? '詳細' : '簡易'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* 詳細表示のみ: 賞味期限・タグ */}
@@ -55,9 +78,7 @@ export default function FoodItemCard({
           <>
             <Text style={styles.expiry} testID={`expiry-${item.id}`}>
               賞味期限{' '}
-              <Text style={styles.expiryValue}>
-                {expiry ?? '未設定'}
-              </Text>
+              <Text style={styles.expiryValue}>{expiry ?? '未設定'}</Text>
             </Text>
             <View style={styles.tags}>
               {item.tags.map((tag) => (
@@ -77,12 +98,12 @@ export default function FoodItemCard({
         />
       </View>
 
-      {/* 削除ボタン */}
+      {/* 削除ボタン（削除モード時のみ表示） */}
       {showDeleteButton && (
         <TouchableOpacity
           testID={`delete-btn-${item.id}`}
           style={styles.deleteBtn}
-          onPress={() => onDelete(item.id)}
+          onPress={handleDeletePress}
           accessibilityLabel={`${item.name}を削除`}
         >
           <Text style={styles.deleteIcon}>🗑</Text>
@@ -140,13 +161,29 @@ const styles = StyleSheet.create({
     color: '#1a2e2a',
     flex: 1,
   },
+  headButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 8,
+  },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#f0f9f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconBtnText: {
+    fontSize: 14,
+  },
   toggleBtn: {
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(13, 143, 122, 0.35)',
-    marginLeft: 8,
   },
   toggleLabel: {
     fontSize: 11,

@@ -90,6 +90,40 @@ describe('StorageScreen', () => {
     await expect(element(by.text('牛乳'))).not.toBeVisible();
   });
 
+  // ── 編集 ──────────────────────────────────────────────
+  it('食品を編集できる', async () => {
+    await element(by.id('edit-btn-1')).tap();
+    await expect(element(by.id('edit-food-sheet'))).toBeVisible();
+    await element(by.id('edit-food-name-input')).clearText();
+    await element(by.id('edit-food-name-input')).typeText('MilkEdited');
+    await element(by.id('edit-food-submit')).tap();
+    await expect(element(by.text('MilkEdited'))).toBeVisible();
+  });
+
+  it('編集モーダルをキャンセルできる', async () => {
+    await element(by.id('edit-btn-1')).tap();
+    await expect(element(by.id('edit-food-sheet'))).toBeVisible();
+    await element(by.id('edit-food-cancel')).tap();
+    await expect(element(by.id('storage-screen'))).toBeVisible();
+  });
+
+  // ── 削除確認ダイアログ ────────────────────────────────
+  it('削除確認ダイアログが表示され、削除できる', async () => {
+    await element(by.id('btn-delete-mode')).tap();
+    await element(by.id('delete-btn-1')).tap();
+    // ネイティブ確認ダイアログの「削除する」をタップ
+    await element(by.text('削除する')).tap();
+    await expect(element(by.text('牛乳'))).not.toBeVisible();
+  });
+
+  it('削除確認ダイアログをキャンセルできる', async () => {
+    await element(by.id('btn-delete-mode')).tap();
+    await element(by.id('delete-btn-1')).tap();
+    await element(by.text('キャンセル')).tap();
+    // キャンセル後は牛乳が残っている
+    await expect(element(by.text('牛乳'))).toBeVisible();
+  });
+
   // ── 表示切替 ──────────────────────────────────────────
   it('一括簡易表示に切り替えられる', async () => {
     await expect(element(by.id('btn-bulk-view'))).toBeVisible();
