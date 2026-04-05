@@ -37,27 +37,27 @@ export default function StorageScreen() {
     [isSimpleGlobal, simpleOverrides],
   );
 
-  function handleStockChange(id: string, level: StockLevel) {
+  const handleStockChange = useCallback((id: string, level: StockLevel) => {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, stockLevel: level } : item)),
     );
-  }
+  }, []);
 
-  function handleDelete(id: string) {
+  const handleDelete = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
-  }
+  }, []);
 
-  function handleEdit(updated: FoodItem) {
+  const handleEdit = useCallback((updated: FoodItem) => {
     setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     setEditingItem(null);
-  }
+  }, []);
 
-  function handleToggleView(id: string) {
+  const handleToggleView = useCallback((id: string) => {
     setSimpleOverrides((prev) => {
       const current = id in prev ? prev[id] : isSimpleGlobal;
       return { ...prev, [id]: !current };
     });
-  }
+  }, [isSimpleGlobal]);
 
   function handleBulkToggle() {
     setIsSimpleGlobal((prev) => !prev);
@@ -73,6 +73,21 @@ export default function StorageScreen() {
     setSelectedLocation(location);
     setIsDeleteMode(false);
   }
+
+  const renderItem = useCallback(
+    ({ item }: { item: FoodItem }) => (
+      <FoodItemCard
+        item={item}
+        isSimple={isSimpleForItem(item.id)}
+        showDeleteButton={isDeleteMode}
+        onStockChange={handleStockChange}
+        onDelete={handleDelete}
+        onEdit={setEditingItem}
+        onToggleView={() => handleToggleView(item.id)}
+      />
+    ),
+    [isSimpleForItem, isDeleteMode, handleStockChange, handleDelete, handleToggleView],
+  );
 
   return (
     <SafeAreaView style={styles.root} testID="storage-screen">
@@ -128,17 +143,7 @@ export default function StorageScreen() {
         ListEmptyComponent={
           <Text style={styles.emptyText}>この保管場所に食品はありません</Text>
         }
-        renderItem={({ item }) => (
-          <FoodItemCard
-            item={item}
-            isSimple={isSimpleForItem(item.id)}
-            showDeleteButton={isDeleteMode}
-            onStockChange={handleStockChange}
-            onDelete={handleDelete}
-            onEdit={setEditingItem}
-            onToggleView={() => handleToggleView(item.id)}
-          />
-        )}
+        renderItem={renderItem}
       />
 
       {/* 食品追加モーダル */}

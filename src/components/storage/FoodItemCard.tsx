@@ -21,7 +21,7 @@ function formatExpiry(iso: string | undefined): string | null {
   return `${parseInt(parts[0])}年${parseInt(parts[1])}月${parseInt(parts[2])}日`;
 }
 
-export default function FoodItemCard({
+function FoodItemCard({
   item,
   isSimple,
   showDeleteButton,
@@ -129,6 +129,8 @@ export default function FoodItemCard({
     </View>
   );
 }
+
+export default React.memo(FoodItemCard);
 
 const styles = StyleSheet.create({
   card: {
