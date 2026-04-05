@@ -134,8 +134,11 @@ describe('StorageScreen', () => {
 
   // ── 賞味期限警告 ──────────────────────────────────────
   it('期限切れ食品に警告バッジが表示される', async () => {
-    // 豆腐(id=4)は expiryDate=2000-01-01 で常に期限切れ
-    await expect(element(by.id('expiry-badge-4'))).toBeVisible();
+    // 豆腐(id=4)は expiryDate=2000-01-01 で常に期限切れ（4番目のアイテムのためスクロールして確認）
+    await waitFor(element(by.id('expiry-badge-4')))
+      .toBeVisible()
+      .whileElement(by.id('food-list'))
+      .scroll(300, 'down');
   });
 
   it('期限内食品には警告バッジが表示されない', async () => {
