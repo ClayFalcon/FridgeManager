@@ -132,6 +132,22 @@ describe('StorageScreen', () => {
     await expect(element(by.text('牛乳'))).toBeVisible();
   });
 
+  // ── 賞味期限警告 ──────────────────────────────────────
+  it('期限切れ食品に警告バッジが表示される', async () => {
+    // 豆腐(id=4)は expiryDate=2000-01-01 で常に期限切れ
+    await expect(element(by.id('expiry-badge-4'))).toBeVisible();
+  });
+
+  it('期限内食品には警告バッジが表示されない', async () => {
+    // 卵(id=2)は expiryDate=2099-12-31 で常に期限内
+    await expect(element(by.id('expiry-badge-2'))).not.toBeVisible();
+  });
+
+  it('賞味期限未設定の食品には警告バッジが表示されない', async () => {
+    // ハム(id=3)は expiryDate 未設定
+    await expect(element(by.id('expiry-badge-3'))).not.toBeVisible();
+  });
+
   // ── 表示切替 ──────────────────────────────────────────
   it('一括簡易表示に切り替えられる', async () => {
     await expect(element(by.id('btn-bulk-view'))).toBeVisible();

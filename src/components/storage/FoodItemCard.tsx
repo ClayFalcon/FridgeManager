@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { FoodItem, StockLevel } from '../../types/food';
 import StockLevelSelector from './StockLevelSelector';
+import { getExpiryStatus } from '../../utils/expiryUtils';
 
 interface Props {
   item: FoodItem;
@@ -30,6 +31,7 @@ export default function FoodItemCard({
   onToggleView,
 }: Props) {
   const expiry = formatExpiry(item.expiryDate);
+  const expiryStatus = getExpiryStatus(item.expiryDate);
 
   function handleDeletePress() {
     Alert.alert(
@@ -76,10 +78,25 @@ export default function FoodItemCard({
         {/* 詳細表示のみ: 賞味期限・タグ */}
         {!isSimple && (
           <>
-            <Text style={styles.expiry} testID={`expiry-${item.id}`}>
-              賞味期限{' '}
-              <Text style={styles.expiryValue}>{expiry ?? '未設定'}</Text>
-            </Text>
+            <View style={styles.expiryRow}>
+              <Text
+                style={[styles.expiry, expiryStatus === 'expired' && styles.expiryExpired, expiryStatus === 'near' && styles.expiryNear]}
+                testID={`expiry-${item.id}`}
+              >
+                賞味期限{' '}
+                <Text style={styles.expiryValue}>{expiry ?? '未設定'}</Text>
+              </Text>
+              {(expiryStatus === 'expired' || expiryStatus === 'near') && (
+                <View
+                  style={[styles.expiryBadge, expiryStatus === 'expired' ? styles.badgeExpired : styles.badgeNear]}
+                  testID={`expiry-badge-${item.id}`}
+                >
+                  <Text style={styles.badgeText}>
+                    {expiryStatus === 'expired' ? '期限切れ' : 'もうすぐ期限'}
+                  </Text>
+                </View>
+              )}
+            </View>
             <View style={styles.tags}>
               {item.tags.map((tag) => (
                 <View key={tag} style={styles.tag}>
@@ -190,14 +207,42 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#0d8f7a',
   },
+  expiryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
   expiry: {
     fontSize: 13,
     color: '#5c7a72',
-    marginBottom: 8,
+  },
+  expiryExpired: {
+    color: '#c73e3e',
+  },
+  expiryNear: {
+    color: '#b86a00',
   },
   expiryValue: {
     color: '#1a2e2a',
     fontWeight: '600',
+  },
+  expiryBadge: {
+    borderRadius: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+  },
+  badgeExpired: {
+    backgroundColor: '#fde8e8',
+  },
+  badgeNear: {
+    backgroundColor: '#fff3e0',
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#c73e3e',
   },
   tags: {
     flexDirection: 'row',

@@ -1,8 +1,8 @@
 [
   { "id": "1",  "name": "牛乳",       "icon": "🥛", "stockLevel": 2, "expiryDate": "2026-04-08", "tags": ["乳製品"],        "location": "fridge" },
-  { "id": "2",  "name": "卵",         "icon": "🥚", "stockLevel": 0, "expiryDate": "2026-04-12", "tags": ["卵"],            "location": "fridge" },
+  { "id": "2",  "name": "卵",         "icon": "🥚", "stockLevel": 0, "expiryDate": "2099-12-31", "tags": ["卵"],            "location": "fridge" },
   { "id": "3",  "name": "ハム",       "icon": "🥓", "stockLevel": 1, "expiryDate": "",           "tags": ["肉類", "加工品"],"location": "fridge" },
-  { "id": "4",  "name": "豆腐",       "icon": "🫘", "stockLevel": 1, "expiryDate": "2026-04-05", "tags": ["大豆"],          "location": "fridge" },
+  { "id": "4",  "name": "豆腐",       "icon": "🫘", "stockLevel": 1, "expiryDate": "2000-01-01", "tags": ["大豆"],          "location": "fridge" },
   { "id": "5",  "name": "ヨーグルト", "icon": "🍦", "stockLevel": 0, "expiryDate": "2026-04-20", "tags": ["乳製品"],        "location": "fridge" },
 
   { "id": "6",  "name": "レタス",     "icon": "🥬", "stockLevel": 1, "expiryDate": "2026-04-04", "tags": ["葉物野菜"],      "location": "vegetable" },
