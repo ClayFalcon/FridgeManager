@@ -5,8 +5,8 @@ describe('StorageScreen', () => {
 
   beforeEach(async () => {
     // アプリデータ（SQLite含む）をリセットして再起動し初期データを再シード
-    await device.clearAppUserData();
-    await device.launchApp();
+    // delete: true は adb shell pm clear でユーザーデータを全消去してから起動
+    await device.launchApp({ delete: true });
     // DB読み込み完了まで待機
     await waitFor(element(by.id('storage-screen'))).toBeVisible().withTimeout(10000);
   });
