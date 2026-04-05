@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,26 +6,35 @@ import {
   TouchableOpacity,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from 'react-native';
 import { FoodItem, StorageLocation, StockLevel } from '../types/food';
-import rawInitialData from '../data/initialFoodItems.json';
+import { LocalRepository } from '../db/LocalRepository';
 import LocationTabs from '../components/storage/LocationTabs';
 import FoodItemCard from '../components/storage/FoodItemCard';
 import AddFoodModal from '../components/storage/AddFoodModal';
 import EditFoodModal from '../components/storage/EditFoodModal';
 
-const initialItems = rawInitialData as FoodItem[];
-
 let nextId = 100;
 
 export default function StorageScreen() {
-  const [items, setItems] = useState<FoodItem[]>(initialItems);
+  const repo = useRef(new LocalRepository()).current;
+
+  const [items, setItems] = useState<FoodItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<StorageLocation>('fridge');
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isSimpleGlobal, setIsSimpleGlobal] = useState(false);
   const [simpleOverrides, setSimpleOverrides] = useState<Record<string, boolean>>({});
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
+
+  useEffect(() => {
+    repo.getAll().then((loaded) => {
+      setItems(loaded);
+      setIsLoading(false);
+    });
+  }, [repo]);
 
   const visibleItems = items.filter((item) => item.location === selectedLocation);
 
@@ -41,16 +50,19 @@ export default function StorageScreen() {
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, stockLevel: level } : item)),
     );
-  }, []);
+    repo.updateStock(id, level);
+  }, [repo]);
 
   const handleDelete = useCallback((id: string) => {
     setItems((prev) => prev.filter((item) => item.id !== id));
-  }, []);
+    repo.delete(id);
+  }, [repo]);
 
   const handleEdit = useCallback((updated: FoodItem) => {
     setItems((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
+    repo.update(updated);
     setEditingItem(null);
-  }, []);
+  }, [repo]);
 
   const handleToggleView = useCallback((id: string) => {
     setSimpleOverrides((prev) => {
@@ -67,6 +79,7 @@ export default function StorageScreen() {
   function handleAdd(itemData: Omit<FoodItem, 'id'>) {
     const newItem: FoodItem = { ...itemData, id: String(nextId++) };
     setItems((prev) => [...prev, newItem]);
+    repo.add(newItem);
   }
 
   function handleTabChange(location: StorageLocation) {
@@ -88,6 +101,14 @@ export default function StorageScreen() {
     ),
     [isSimpleForItem, isDeleteMode, handleStockChange, handleDelete, handleToggleView],
   );
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.root} testID="storage-screen">
+        <ActivityIndicator style={styles.loader} size="large" color="#0d8f7a" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.root} testID="storage-screen">
@@ -169,6 +190,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#f0f9f5',
+  },
+  loader: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: 20,

@@ -4,11 +4,11 @@ describe('StorageScreen', () => {
   });
 
   beforeEach(async () => {
-    // 開きっぱなしのネイティブダイアログを閉じてからリロード
-    for (const label of ['OK', 'キャンセル', '削除する']) {
-      try { await element(by.text(label)).tap(); } catch (_) {}
-    }
-    await device.reloadReactNative();
+    // アプリデータ（SQLite含む）をリセットして再起動し初期データを再シード
+    await device.clearAppUserData();
+    await device.launchApp();
+    // DB読み込み完了まで待機
+    await waitFor(element(by.id('storage-screen'))).toBeVisible().withTimeout(10000);
   });
 
   // ── 基本表示 ──────────────────────────────────────────
