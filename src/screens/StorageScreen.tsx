@@ -17,7 +17,11 @@ import EditFoodModal from '../components/storage/EditFoodModal';
 
 let nextId = 100;
 
-export default function StorageScreen() {
+interface Props {
+  onOpenSettings: () => void;
+}
+
+export default function StorageScreen({ onOpenSettings }: Props) {
   const repo = useRepository();
 
   const [items, setItems] = useState<FoodItem[]>([]);
@@ -115,8 +119,13 @@ export default function StorageScreen() {
     <SafeAreaView style={styles.root} testID="storage-screen">
       {/* ヘッダー */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle} testID="storage-title">食品保管</Text>
-        <Text style={styles.headerSub}>保管場所をタブで切り替え</Text>
+        <View style={styles.headerText}>
+          <Text style={styles.headerTitle} testID="storage-title">食品保管</Text>
+          <Text style={styles.headerSub}>保管場所をタブで切り替え</Text>
+        </View>
+        <TouchableOpacity testID="btn-settings" onPress={onOpenSettings} style={styles.settingsBtn}>
+          <Text style={styles.settingsBtnText}>⚙️</Text>
+        </TouchableOpacity>
       </View>
 
       {/* 保管場所タブ */}
@@ -196,12 +205,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(13, 143, 122, 0.12)',
     backgroundColor: '#ffffff',
+  },
+  headerText: {
+    flex: 1,
+  },
+  settingsBtn: {
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  settingsBtnText: {
+    fontSize: 20,
   },
   headerTitle: {
     fontSize: 20,

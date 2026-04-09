@@ -162,4 +162,22 @@ describe('StorageScreen', () => {
     await expect(element(by.id('view-toggle-1'))).toBeVisible();
     await element(by.id('view-toggle-1')).tap();
   });
+
+  // ── 設定画面 ──────────────────────────────────────────
+  it('設定画面に遷移できる', async () => {
+    await element(by.id('btn-settings')).tap();
+    await expect(element(by.id('settings-screen'))).toBeVisible();
+  });
+
+  it('設定画面から戻ることができる', async () => {
+    await element(by.id('btn-settings')).tap();
+    await expect(element(by.id('settings-screen'))).toBeVisible();
+    await element(by.id('btn-back')).tap();
+    await expect(element(by.id('storage-screen'))).toBeVisible();
+  });
+
+  it('設定画面に「家族と共有する」ボタンが表示される', async () => {
+    await element(by.id('btn-settings')).tap();
+    await expect(element(by.id('btn-link-google'))).toBeVisible();
+  });
 });
