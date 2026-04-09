@@ -9,18 +9,18 @@ import {
   Alert,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import { useFirebaseAuthService } from '../services/FirebaseAuthService';
+import { AuthService } from '../services/AuthService';
 import { LocalRepository } from '../db/LocalRepository';
 import { CloudRepository } from '../db/CloudRepository';
 import { migrateToCloud } from '../services/MigrationService';
 
 interface Props {
   onBack: () => void;
+  authService: AuthService;
 }
 
-export default function SettingsScreen({ onBack }: Props) {
+export default function SettingsScreen({ onBack, authService }: Props) {
   const { user } = useAuth();
-  const authService = useFirebaseAuthService();
   const [isLinking, setIsLinking] = useState(false);
 
   const isLinked = user !== null && !user.isAnonymous;
