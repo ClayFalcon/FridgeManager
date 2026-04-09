@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { FoodItem, StorageLocation, StockLevel } from '../types/food';
-import { LocalRepository } from '../db/LocalRepository';
+import { useRepository } from '../hooks/useRepository';
 import LocationTabs from '../components/storage/LocationTabs';
 import FoodItemCard from '../components/storage/FoodItemCard';
 import AddFoodModal from '../components/storage/AddFoodModal';
@@ -18,7 +18,7 @@ import EditFoodModal from '../components/storage/EditFoodModal';
 let nextId = 100;
 
 export default function StorageScreen() {
-  const repo = useRef(new LocalRepository()).current;
+  const repo = useRepository();
 
   const [items, setItems] = useState<FoodItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -30,6 +30,7 @@ export default function StorageScreen() {
   const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
 
   useEffect(() => {
+    setIsLoading(true);
     repo.getAll().then((loaded) => {
       setItems(loaded);
       setIsLoading(false);
