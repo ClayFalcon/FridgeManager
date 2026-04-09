@@ -1,27 +1,15 @@
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
-import { GoogleAuthProvider, linkWithCredential } from 'firebase/auth';
-import { auth } from '../config/firebase';
 import { AuthService } from './AuthService';
 
-WebBrowser.maybeCompleteAuthSession();
+// TODO: Google Cloud ConsoleでAndroid Client IDを取得後に実装する
+// 必要な手順:
+//   1. Google Cloud Console でOAuth 2.0クライアントID（Androidアプリ）を作成
+//   2. androidClientId に設定
+//   3. expo-auth-session の Google.useAuthRequest を使ったOAuthフローを実装
 
 export function useFirebaseAuthService(): AuthService {
-  const [, response, promptAsync] = Google.useAuthRequest({
-    androidClientId: '',
-  });
-
   return {
-    async linkWithGoogle() {
-      const result = await promptAsync();
-      if (result.type !== 'success') {
-        throw new Error('Google sign-in cancelled or failed');
-      }
-      const { id_token } = result.params;
-      const credential = GoogleAuthProvider.credential(id_token);
-      const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error('No current user');
-      await linkWithCredential(currentUser, credential);
+    async linkWithGoogle(): Promise<void> {
+      throw new Error('Google OAuth は未設定です。Android Client ID を設定してください。');
     },
   };
 }
