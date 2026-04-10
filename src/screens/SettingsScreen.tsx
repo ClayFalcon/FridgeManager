@@ -20,7 +20,7 @@ interface Props {
 }
 
 export default function SettingsScreen({ onBack, authService }: Props) {
-  const { user } = useAuth();
+  const { user, signInAnon } = useAuth();
   const [isLinking, setIsLinking] = useState(false);
 
   const isLinked = user !== null && !user.isAnonymous;
@@ -28,6 +28,7 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   async function handleLinkGoogle() {
     setIsLinking(true);
     try {
+      await signInAnon();
       await authService.linkWithGoogle();
       if (user) {
         const local = new LocalRepository();

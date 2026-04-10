@@ -1,13 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { signInAnonymously, onAuthStateChanged, User } from 'firebase/auth';
+import { onAuthStateChanged, signInAnonymously, User } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
 interface AuthContextValue {
   user: User | null;
   isAuthReady: boolean;
+  signInAnon: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextValue>({ user: null, isAuthReady: false });
+const AuthContext = createContext<AuthContextValue>({
+  user: null,
+  isAuthReady: false,
+  signInAnon: async () => {},
+});
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -21,15 +26,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return unsubscribe;
   }, []);
 
-  useEffect(() => {
-    if (isAuthReady && !user) {
-      signInAnonymously(auth).catch((error) => {
-        console.error('Anonymous sign-in failed:', error);
-      });
+  async function signInAnon(): Promise<void> {
+    if (!user) {
+      await signInAnonymously(auth);
     }
-  }, [isAuthReady, user]);
+  }
 
-  return <AuthContext.Provider value={{ user, isAuthReady }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isAuthReady, signInAnon }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth(): AuthContextValue {

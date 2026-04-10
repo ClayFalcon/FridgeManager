@@ -7,8 +7,8 @@ describe('StorageScreen', () => {
     // アプリデータ（SQLite含む）をリセットして再起動し初期データを再シード
     // delete: true は adb shell pm clear でユーザーデータを全消去してから起動
     await device.launchApp({ delete: true });
-    // DB読み込み完了まで待機
-    await waitFor(element(by.id('storage-screen'))).toBeVisible().withTimeout(10000);
+    // ローディング完了（btn-add-foodが表示される）まで待機
+    await waitFor(element(by.id('btn-add-food'))).toBeVisible().withTimeout(10000);
   });
 
   // ── 基本表示 ──────────────────────────────────────────
@@ -166,18 +166,18 @@ describe('StorageScreen', () => {
   // ── 設定画面 ──────────────────────────────────────────
   it('設定画面に遷移できる', async () => {
     await element(by.id('btn-settings')).tap();
-    await expect(element(by.id('settings-screen'))).toBeVisible();
+    await waitFor(element(by.id('settings-screen'))).toBeVisible().withTimeout(5000);
   });
 
   it('設定画面から戻ることができる', async () => {
     await element(by.id('btn-settings')).tap();
-    await expect(element(by.id('settings-screen'))).toBeVisible();
+    await waitFor(element(by.id('settings-screen'))).toBeVisible().withTimeout(5000);
     await element(by.id('btn-back')).tap();
-    await expect(element(by.id('storage-screen'))).toBeVisible();
+    await waitFor(element(by.id('storage-screen'))).toBeVisible().withTimeout(5000);
   });
 
   it('設定画面に「家族と共有する」ボタンが表示される', async () => {
     await element(by.id('btn-settings')).tap();
-    await expect(element(by.id('btn-link-google'))).toBeVisible();
+    await waitFor(element(by.id('btn-link-google'))).toBeVisible().withTimeout(5000);
   });
 });
