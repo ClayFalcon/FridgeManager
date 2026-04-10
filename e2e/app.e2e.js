@@ -1,5 +1,15 @@
 describe('StorageScreen', () => {
   beforeAll(async () => {
+    // Firebase Auth/Firestoreの長ポーリング接続をDetoxの同期監視から除外する。
+    // これらは常時接続のため、除外しないとDetoxが「アプリが非アイドル」と誤判定し
+    // waitFor系のアサーションが永遠にタイムアウトする。
+    await device.setURLBlacklist([
+      '.*firebaseauth\\.googleapis\\.com.*',
+      '.*firestore\\.googleapis\\.com.*',
+      '.*identitytoolkit\\.googleapis\\.com.*',
+      '.*firebase\\.googleapis\\.com.*',
+      '.*securetoken\\.googleapis\\.com.*',
+    ]);
     await device.launchApp();
   });
 

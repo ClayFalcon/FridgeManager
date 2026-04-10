@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
 import { AuthProvider } from './src/context/AuthContext';
 import StorageScreen from './src/screens/StorageScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
@@ -9,19 +8,15 @@ function AppNavigator() {
   const [showSettings, setShowSettings] = useState(false);
   const authService = useFirebaseAuthService();
 
-  return (
-    <View style={styles.root}>
-      <StorageScreen onOpenSettings={() => setShowSettings(true)} />
-      {showSettings && (
-        <View style={StyleSheet.absoluteFill}>
-          <SettingsScreen
-            authService={authService}
-            onBack={() => setShowSettings(false)}
-          />
-        </View>
-      )}
-    </View>
-  );
+  if (showSettings) {
+    return (
+      <SettingsScreen
+        authService={authService}
+        onBack={() => setShowSettings(false)}
+      />
+    );
+  }
+  return <StorageScreen onOpenSettings={() => setShowSettings(true)} />;
 }
 
 export default function App() {
@@ -31,9 +26,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-});
