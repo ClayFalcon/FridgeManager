@@ -1,22 +1,28 @@
+// Firebase Auth/Firestoreの長ポーリング接続をDetoxの同期監視から除外するURLリスト。
+// これらは常時接続のため、除外しないとDetoxが「アプリが非アイドル」と誤判定し
+// waitFor系のアサーションが永遠にタイムアウトする。
+// setURLBlacklistはアプリ起動後に呼ぶ必要があり、launchApp({ delete: true })で
+// リセットされるためbeforeEachでも再設定する。
+const FIREBASE_URL_BLACKLIST = [
+  '.*firebaseauth\\.googleapis\\.com.*',
+  '.*firestore\\.googleapis\\.com.*',
+  '.*identitytoolkit\\.googleapis\\.com.*',
+  '.*firebase\\.googleapis\\.com.*',
+  '.*securetoken\\.googleapis\\.com.*',
+];
+
 describe('StorageScreen', () => {
   beforeAll(async () => {
-    // Firebase Auth/Firestoreの長ポーリング接続をDetoxの同期監視から除外する。
-    // これらは常時接続のため、除外しないとDetoxが「アプリが非アイドル」と誤判定し
-    // waitFor系のアサーションが永遠にタイムアウトする。
-    await device.setURLBlacklist([
-      '.*firebaseauth\\.googleapis\\.com.*',
-      '.*firestore\\.googleapis\\.com.*',
-      '.*identitytoolkit\\.googleapis\\.com.*',
-      '.*firebase\\.googleapis\\.com.*',
-      '.*securetoken\\.googleapis\\.com.*',
-    ]);
     await device.launchApp();
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
   });
 
   beforeEach(async () => {
     // アプリデータ（SQLite含む）をリセットして再起動し初期データを再シード
     // delete: true は adb shell pm clear でユーザーデータを全消去してから起動
     await device.launchApp({ delete: true });
+    // アプリ再起動後にFirebase URLブラックリストを再設定（再起動でリセットされるため）
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
     // ローディング完了（btn-add-foodが表示される）まで待機
     await waitFor(element(by.id('btn-add-food'))).toBeVisible().withTimeout(10000);
   });
