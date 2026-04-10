@@ -1,18 +1,27 @@
 import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { AuthProvider } from './src/context/AuthContext';
 import StorageScreen from './src/screens/StorageScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { useFirebaseAuthService } from './src/services/FirebaseAuthService';
 
-// Google.useAuthRequest を常にマウントするため AppNavigator に引き上げる
 function AppNavigator() {
-  const [screen, setScreen] = useState('storage');
+  const [showSettings, setShowSettings] = useState(false);
   const authService = useFirebaseAuthService();
 
-  if (screen === 'settings') {
-    return <SettingsScreen authService={authService} onBack={() => setScreen('storage')} />;
-  }
-  return <StorageScreen onOpenSettings={() => setScreen('settings')} />;
+  return (
+    <View style={styles.root}>
+      <StorageScreen onOpenSettings={() => setShowSettings(true)} />
+      {showSettings && (
+        <View style={StyleSheet.absoluteFill}>
+          <SettingsScreen
+            authService={authService}
+            onBack={() => setShowSettings(false)}
+          />
+        </View>
+      )}
+    </View>
+  );
 }
 
 export default function App() {
@@ -22,3 +31,9 @@ export default function App() {
     </AuthProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});
