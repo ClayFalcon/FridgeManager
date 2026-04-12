@@ -35,6 +35,13 @@ export default function StorageScreen({ onOpenSettings }: Props) {
 
   useEffect(() => {
     setIsLoading(true);
+    if (repo.subscribe) {
+      const unsubscribe = repo.subscribe((loaded) => {
+        setItems(loaded);
+        setIsLoading(false);
+      });
+      return unsubscribe;
+    }
     repo.getAll().then((loaded) => {
       setItems(loaded);
       setIsLoading(false);

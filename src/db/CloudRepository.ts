@@ -7,6 +7,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { FoodItem, StockLevel } from '../types/food';
@@ -46,6 +47,13 @@ export class CloudRepository implements FoodRepository {
     const q = query(foodItemPath(this.uid), orderBy('__name__'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map((d) => fromDoc(d.id, d.data() as Record<string, unknown>));
+  }
+
+  subscribe(callback: (items: FoodItem[]) => void): () => void {
+    const q = query(foodItemPath(this.uid), orderBy('__name__'));
+    return onSnapshot(q, (snapshot) => {
+      callback(snapshot.docs.map((d) => fromDoc(d.id, d.data() as Record<string, unknown>)));
+    });
   }
 
   async add(item: FoodItem): Promise<void> {
