@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './src/context/AuthContext';
+import { SharingProvider } from './src/context/SharingContext';
 import StorageScreen from './src/screens/StorageScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import { useFirebaseAuthService } from './src/services/FirebaseAuthService';
@@ -22,7 +23,9 @@ function AppNavigator() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppNavigator />
+      <SharingProvider>
+        <AppNavigator />
+      </SharingProvider>
     </AuthProvider>
   );
 }
