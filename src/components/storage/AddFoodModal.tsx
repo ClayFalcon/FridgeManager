@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { FoodItem, StorageLocation, StockLevel, LOCATION_LABELS } from '../../types/food';
 import StockLevelSelector from './StockLevelSelector';
+import DatePickerField from './DatePickerField';
 
 interface Props {
   visible: boolean;
@@ -22,6 +23,7 @@ interface Props {
 export default function AddFoodModal({ visible, location, onAdd, onClose }: Props) {
   const [name, setName] = useState('');
   const [stockLevel, setStockLevel] = useState<StockLevel>(2);
+  const [expiryDate, setExpiryDate] = useState<string | undefined>(undefined);
 
   function handleAdd() {
     const trimmed = name.trim();
@@ -31,15 +33,18 @@ export default function AddFoodModal({ visible, location, onAdd, onClose }: Prop
       stockLevel,
       tags: [],
       location,
+      expiryDate,
     });
     setName('');
     setStockLevel(2);
+    setExpiryDate(undefined);
     onClose();
   }
 
   function handleClose() {
     setName('');
     setStockLevel(2);
+    setExpiryDate(undefined);
     onClose();
   }
 
@@ -71,6 +76,13 @@ export default function AddFoodModal({ visible, location, onAdd, onClose }: Prop
             autoFocus
             returnKeyType="done"
             onSubmitEditing={handleAdd}
+          />
+
+          <Text style={styles.fieldLabel}>賞味期限</Text>
+          <DatePickerField
+            testID="add-food-expiry-input"
+            value={expiryDate}
+            onChange={setExpiryDate}
           />
 
           <Text style={styles.fieldLabel}>在庫</Text>

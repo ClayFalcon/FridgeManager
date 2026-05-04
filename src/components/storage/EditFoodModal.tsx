@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { FoodItem, StockLevel } from '../../types/food';
 import StockLevelSelector from './StockLevelSelector';
+import DatePickerField from './DatePickerField';
 
 interface Props {
   visible: boolean;
@@ -112,16 +113,11 @@ export default function EditFoodModal({ visible, item, onSave, onClose }: Props)
             returnKeyType="next"
           />
 
-          <Text style={styles.fieldLabel}>賞味期限（YYYY-MM-DD）</Text>
-          <TextInput
+          <Text style={styles.fieldLabel}>賞味期限</Text>
+          <DatePickerField
             testID="edit-food-expiry-input"
-            style={styles.input}
-            value={expiryDate}
-            onChangeText={setExpiryDate}
-            placeholder="例: 2026-04-30"
-            placeholderTextColor="#aaa"
-            returnKeyType="done"
-            onSubmitEditing={handleSave}
+            value={expiryDate || undefined}
+            onChange={(v) => setExpiryDate(v ?? '')}
           />
 
           <Text style={styles.fieldLabel}>在庫</Text>
