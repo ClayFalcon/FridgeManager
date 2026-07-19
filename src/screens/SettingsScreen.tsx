@@ -19,6 +19,10 @@ import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
 import { LocalRepository } from '../db/LocalRepository';
 import { CloudRepository } from '../db/CloudRepository';
+import { LocalRecipeRepository } from '../db/LocalRecipeRepository';
+import { CloudRecipeRepository } from '../db/CloudRecipeRepository';
+import { LocalShoppingRepository } from '../db/LocalShoppingRepository';
+import { CloudShoppingRepository } from '../db/CloudShoppingRepository';
 import { migrateToCloud } from '../services/MigrationService';
 import { getSettings, saveSettings } from '../db/NotificationSettingsStore';
 import { clampSettingsToTier } from '../utils/notificationTier';
@@ -181,9 +185,9 @@ export default function SettingsScreen({ onBack, authService }: Props) {
       await signInAnon();
       await authService.linkWithGoogle();
       if (user) {
-        const local = new LocalRepository();
-        const cloud = new CloudRepository(user.uid);
-        await migrateToCloud(local, cloud);
+        await migrateToCloud(new LocalRepository(), new CloudRepository(user.uid));
+        await migrateToCloud(new LocalRecipeRepository(), new CloudRecipeRepository(user.uid));
+        await migrateToCloud(new LocalShoppingRepository(), new CloudShoppingRepository(user.uid));
       }
       await refresh();
       Alert.alert('完了', '家族との共有を開始しました');

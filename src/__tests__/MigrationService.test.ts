@@ -46,4 +46,16 @@ describe('migrateToCloud', () => {
 
     await expect(migrateToCloud(local, cloud)).rejects.toThrow('Firestore write failed');
   });
+
+  it('ジェネリック化によりレシピ等の別型リポジトリも移行できる', async () => {
+    const recipes = [
+      { id: '1', name: 'トマトパスタ', ingredients: [{ name: 'トマト' }] },
+    ];
+    const local = { getAll: jest.fn().mockResolvedValue(recipes), add: jest.fn() };
+    const cloud = { getAll: jest.fn().mockResolvedValue([]), add: jest.fn().mockResolvedValue(undefined) };
+
+    await migrateToCloud(local, cloud);
+
+    expect(cloud.add).toHaveBeenCalledWith(recipes[0]);
+  });
 });

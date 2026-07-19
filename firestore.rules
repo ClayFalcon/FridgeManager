@@ -31,6 +31,16 @@ service cloud.firestore {
         allow read, write: if isSelfOrMember(ownerUid);
       }
 
+      // レシピ（共有グループで共有）
+      match /recipes/{recipeId} {
+        allow read, write: if isSelfOrMember(ownerUid);
+      }
+
+      // 買い物リスト（共有グループで共有）
+      match /shopping_items/{itemId} {
+        allow read, write: if isSelfOrMember(ownerUid);
+      }
+
       // 自分自身の端末プッシュトークン（オーナー本人）
       match /pushTokens/{token} {
         allow read: if isSelfOrMember(ownerUid);
