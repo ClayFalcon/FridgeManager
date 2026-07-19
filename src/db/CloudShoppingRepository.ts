@@ -66,4 +66,9 @@ export class CloudShoppingRepository implements ShoppingRepository {
       items.filter((item) => item.checked).map((item) => this.delete(item.id)),
     );
   }
+
+  async clearAll(): Promise<void> {
+    const items = await this.getAll();
+    await Promise.all(items.map((item) => this.delete(item.id)));
+  }
 }

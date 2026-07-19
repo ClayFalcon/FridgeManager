@@ -80,4 +80,20 @@ describe('CloudShoppingRepository', () => {
     expect(deleteDoc).toHaveBeenCalledWith(`users/${uid}/shopping_items/1`);
     expect(deleteDoc).toHaveBeenCalledWith(`users/${uid}/shopping_items/3`);
   });
+
+  it('clearAllが全docを削除する', async () => {
+    (getDocs as jest.Mock).mockResolvedValue(
+      makeSnapshot([
+        { id: '1', name: '卵', checked: true },
+        { id: '2', name: '牛乳', checked: false },
+      ]),
+    );
+    (deleteDoc as jest.Mock).mockResolvedValue(undefined);
+
+    await repo.clearAll();
+
+    expect(deleteDoc).toHaveBeenCalledTimes(2);
+    expect(deleteDoc).toHaveBeenCalledWith(`users/${uid}/shopping_items/1`);
+    expect(deleteDoc).toHaveBeenCalledWith(`users/${uid}/shopping_items/2`);
+  });
 });

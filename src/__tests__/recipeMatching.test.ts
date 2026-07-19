@@ -2,6 +2,7 @@ import {
   normalizeIngredientName,
   matchRecipeAgainstStock,
   getMissingIngredients,
+  findFoodByName,
 } from '../utils/recipeMatching';
 import { Recipe } from '../types/recipe';
 import { FoodItem, StockLevel } from '../types/food';
@@ -30,6 +31,28 @@ describe('normalizeIngredientName', () => {
   it('NFKCで全角半角を統一する', () => {
     expect(normalizeIngredientName('ＴＯＭＡＴＯ')).toBe('tomato');
     expect(normalizeIngredientName('ﾄﾏﾄ')).toBe('トマト');
+  });
+
+  it('ひらがなをカタカナに変換して統一する', () => {
+    expect(normalizeIngredientName('とりももにく')).toBe('トリモモニク');
+    expect(normalizeIngredientName('とりももにく')).toBe(normalizeIngredientName('トリモモニク'));
+  });
+
+  it('漢字とかなは別物のまま', () => {
+    expect(normalizeIngredientName('鶏もも肉')).not.toBe(normalizeIngredientName('とりももにく'));
+  });
+});
+
+describe('findFoodByName', () => {
+  it('正規化名の一致で食材を見つける（在庫レベルは問わない）', () => {
+    const foods = [makeFood('鶏もも肉', 0), makeFood('トマト', 2)];
+
+    expect(findFoodByName(foods, ' 鶏もも肉 ')?.name).toBe('鶏もも肉');
+    expect(findFoodByName(foods, 'とまと')?.name).toBe('トマト');
+  });
+
+  it('一致しない場合はundefinedを返す', () => {
+    expect(findFoodByName([makeFood('卵', 1)], 'パン')).toBeUndefined();
   });
 });
 

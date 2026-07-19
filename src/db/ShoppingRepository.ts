@@ -8,4 +8,6 @@ export interface ShoppingRepository {
   setChecked(id: string, checked: boolean): Promise<void>;
   /** チェック済みの品目を一括削除する */
   clearChecked(): Promise<void>;
+  /** 全品目を一括削除する（全部買ってきた時用） */
+  clearAll(): Promise<void>;
 }

@@ -1,9 +1,16 @@
 import { FoodItem } from '../types/food';
 import { Recipe, RecipeIngredient } from '../types/recipe';
 
-/** 材料名の照合用正規化: NFKC（全角/半角統一）+ trim + 小文字化 */
+/**
+ * 材料名の照合用正規化: NFKC（全角/半角統一）+ trim + 小文字化 + ひらがな→カタカナ変換。
+ * 「とりももにく」と「トリモモニク」は一致するが、漢字↔かな（「鶏もも肉」↔「とりももにく」）は別物のまま。
+ */
 export function normalizeIngredientName(name: string): string {
-  return name.normalize('NFKC').trim().toLowerCase();
+  return name
+    .normalize('NFKC')
+    .trim()
+    .toLowerCase()
+    .replace(/[ぁ-ゖ]/g, (ch) => String.fromCharCode(ch.charCodeAt(0) + 0x60));
 }
 
 export interface IngredientStockStatus {
@@ -52,4 +59,10 @@ export function getMissingIngredients(recipe: Recipe, foodItems: FoodItem[]): Re
   return recipe.ingredients.filter(
     (ingredient) => !stockNames.has(normalizeIngredientName(ingredient.name)),
   );
+}
+
+/** 正規化名の一致で食材を探す（在庫レベルは問わない）。「買ってきた」ボタンの照合用 */
+export function findFoodByName(foodItems: FoodItem[], name: string): FoodItem | undefined {
+  const normalized = normalizeIngredientName(name);
+  return foodItems.find((item) => normalizeIngredientName(item.name) === normalized);
 }

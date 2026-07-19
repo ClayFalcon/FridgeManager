@@ -11,6 +11,8 @@ import {
   ScrollView,
 } from 'react-native';
 import { Recipe, RecipeIngredient } from '../../types/recipe';
+import { FoodItem } from '../../types/food';
+import { normalizeIngredientName } from '../../utils/recipeMatching';
 
 interface IngredientRow {
   name: string;
@@ -21,16 +23,20 @@ interface Props {
   visible: boolean;
   /** null = 新規追加、Recipe = 編集 */
   recipe: Recipe | null;
+  /** 材料名サジェスト用の在庫食材一覧 */
+  foodItems: FoodItem[];
   onSave: (data: Omit<Recipe, 'id'>, id: string | null) => void;
   onClose: () => void;
 }
 
 const EMPTY_ROW: IngredientRow = { name: '', quantity: '' };
+const MAX_SUGGESTIONS = 6;
 
-export default function RecipeFormModal({ visible, recipe, onSave, onClose }: Props) {
+export default function RecipeFormModal({ visible, recipe, foodItems, onSave, onClose }: Props) {
   const [name, setName] = useState('');
   const [rows, setRows] = useState<IngredientRow[]>([EMPTY_ROW]);
   const [memo, setMemo] = useState('');
+  const [focusedRow, setFocusedRow] = useState<number | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -41,8 +47,20 @@ export default function RecipeFormModal({ visible, recipe, onSave, onClose }: Pr
           : [EMPTY_ROW],
       );
       setMemo(recipe?.memo ?? '');
+      setFocusedRow(null);
     }
   }, [visible, recipe]);
+
+  function suggestionsFor(rowIndex: number): FoodItem[] {
+    const input = normalizeIngredientName(rows[rowIndex]?.name ?? '');
+    return foodItems
+      .filter((item) => {
+        const itemName = normalizeIngredientName(item.name);
+        if (itemName === input) return false; // 入力済みと完全一致なら候補に出さない
+        return input === '' || itemName.includes(input);
+      })
+      .slice(0, MAX_SUGGESTIONS);
+  }
 
   const validIngredients: RecipeIngredient[] = rows
     .filter((row) => row.name.trim())
@@ -102,32 +120,57 @@ export default function RecipeFormModal({ visible, recipe, onSave, onClose }: Pr
             />
 
             <Text style={styles.fieldLabel}>材料</Text>
+            <Text style={styles.suggestHint}>在庫の食材名をタップして入力すると在庫と確実に照合できます</Text>
             {rows.map((row, index) => (
-              <View style={styles.ingredientRow} key={index}>
-                <TextInput
-                  testID={`recipe-form-ingredient-name-${index}`}
-                  style={[styles.input, styles.ingredientNameInput]}
-                  value={row.name}
-                  onChangeText={(t) => updateRow(index, { name: t })}
-                  placeholder="材料名"
-                  placeholderTextColor="#aaa"
-                />
-                <TextInput
-                  testID={`recipe-form-ingredient-qty-${index}`}
-                  style={[styles.input, styles.ingredientQtyInput]}
-                  value={row.quantity}
-                  onChangeText={(t) => updateRow(index, { quantity: t })}
-                  placeholder="分量"
-                  placeholderTextColor="#aaa"
-                />
-                <TouchableOpacity
-                  testID={`recipe-form-remove-ingredient-${index}`}
-                  style={styles.removeRowBtn}
-                  onPress={() => removeRow(index)}
-                  accessibilityLabel={`材料${index + 1}を削除`}
-                >
-                  <Text style={styles.removeRowText}>✕</Text>
-                </TouchableOpacity>
+              <View key={index}>
+                <View style={styles.ingredientRow}>
+                  <TextInput
+                    testID={`recipe-form-ingredient-name-${index}`}
+                    style={[styles.input, styles.ingredientNameInput]}
+                    value={row.name}
+                    onChangeText={(t) => updateRow(index, { name: t })}
+                    onFocus={() => setFocusedRow(index)}
+                    placeholder="材料名"
+                    placeholderTextColor="#aaa"
+                  />
+                  <TextInput
+                    testID={`recipe-form-ingredient-qty-${index}`}
+                    style={[styles.input, styles.ingredientQtyInput]}
+                    value={row.quantity}
+                    onChangeText={(t) => updateRow(index, { quantity: t })}
+                    onFocus={() => setFocusedRow(null)}
+                    placeholder="分量"
+                    placeholderTextColor="#aaa"
+                  />
+                  <TouchableOpacity
+                    testID={`recipe-form-remove-ingredient-${index}`}
+                    style={styles.removeRowBtn}
+                    onPress={() => removeRow(index)}
+                    accessibilityLabel={`材料${index + 1}を削除`}
+                  >
+                    <Text style={styles.removeRowText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                {/* 在庫食材のサジェスト（フォーカス中の行のみ） */}
+                {focusedRow === index && suggestionsFor(index).length > 0 && (
+                  <View style={styles.suggestionRow}>
+                    {suggestionsFor(index).map((item) => (
+                      <TouchableOpacity
+                        key={item.id}
+                        testID={`recipe-form-suggestion-${index}-${item.id}`}
+                        style={styles.suggestionChip}
+                        onPress={() => {
+                          updateRow(index, { name: item.name });
+                          setFocusedRow(null);
+                        }}
+                      >
+                        <Text style={styles.suggestionText}>
+                          {item.icon ? `${item.icon} ` : ''}{item.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
               </View>
             ))}
             <TouchableOpacity
@@ -242,6 +285,30 @@ const styles = StyleSheet.create({
     color: '#0d8f7a',
     fontWeight: '600',
     paddingVertical: 6,
+  },
+  suggestHint: {
+    fontSize: 11,
+    color: '#9ab3ac',
+    marginBottom: 8,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  suggestionChip: {
+    backgroundColor: '#eef6f3',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(13, 143, 122, 0.25)',
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#0d8f7a',
   },
   memoInput: {
     minHeight: 72,

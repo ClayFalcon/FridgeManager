@@ -54,4 +54,8 @@ export class LocalShoppingRepository implements ShoppingRepository {
   async clearChecked(): Promise<void> {
     db.runSync('DELETE FROM shopping_items WHERE checked = 1;');
   }
+
+  async clearAll(): Promise<void> {
+    db.runSync('DELETE FROM shopping_items;');
+  }
 }

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { ShoppingItem } from '../../types/shopping';
 
@@ -15,6 +16,8 @@ interface Props {
   onToggleChecked: (id: string, checked: boolean) => void;
   onDelete: (id: string) => void;
   onClearChecked: () => void;
+  onClearAll: () => void;
+  onBought: (item: ShoppingItem) => void;
 }
 
 export default function ShoppingListView({
@@ -23,15 +26,25 @@ export default function ShoppingListView({
   onToggleChecked,
   onDelete,
   onClearChecked,
+  onClearAll,
+  onBought,
 }: Props) {
   const [input, setInput] = useState('');
   const hasChecked = items.some((item) => item.checked);
+  const hasItems = items.length > 0;
 
   function handleAdd() {
     const trimmed = input.trim();
     if (!trimmed) return;
     onAdd(trimmed);
     setInput('');
+  }
+
+  function handleClearAllPress() {
+    Alert.alert('すべて削除', '買い物リストを空にしますか？', [
+      { text: 'キャンセル', style: 'cancel' },
+      { text: '削除する', style: 'destructive', onPress: onClearAll },
+    ]);
   }
 
   return (
@@ -58,17 +71,29 @@ export default function ShoppingListView({
         </TouchableOpacity>
       </View>
 
-      {/* チェック済み削除 */}
-      <TouchableOpacity
-        testID="btn-clear-checked"
-        style={[styles.btnClear, !hasChecked && styles.btnClearDisabled]}
-        onPress={onClearChecked}
-        disabled={!hasChecked}
-      >
-        <Text style={[styles.btnClearText, !hasChecked && styles.btnClearTextDisabled]}>
-          チェック済みを削除
-        </Text>
-      </TouchableOpacity>
+      {/* 一括操作 */}
+      <View style={styles.bulkRow}>
+        <TouchableOpacity
+          testID="btn-clear-checked"
+          style={[styles.btnClear, styles.bulkItem, !hasChecked && styles.btnClearDisabled]}
+          onPress={onClearChecked}
+          disabled={!hasChecked}
+        >
+          <Text style={[styles.btnClearText, !hasChecked && styles.btnClearTextDisabled]}>
+            チェック済みを削除
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          testID="btn-clear-all"
+          style={[styles.btnClear, styles.bulkItem, !hasItems && styles.btnClearDisabled]}
+          onPress={handleClearAllPress}
+          disabled={!hasItems}
+        >
+          <Text style={[styles.btnClearText, !hasItems && styles.btnClearTextDisabled]}>
+            すべて削除
+          </Text>
+        </TouchableOpacity>
+      </View>
 
       {/* 品目リスト */}
       <FlatList
@@ -92,6 +117,14 @@ export default function ShoppingListView({
               <Text style={[styles.itemName, item.checked && styles.itemNameChecked]}>
                 {item.name}
               </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID={`shopping-bought-${item.id}`}
+              style={styles.boughtBtn}
+              onPress={() => onBought(item)}
+              accessibilityLabel={`${item.name}を買ってきた`}
+            >
+              <Text style={styles.boughtBtnText}>買ってきた</Text>
             </TouchableOpacity>
             <TouchableOpacity
               testID={`shopping-delete-${item.id}`}
@@ -147,9 +180,16 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
-  btnClear: {
+  bulkRow: {
+    flexDirection: 'row',
+    gap: 10,
     marginHorizontal: 16,
     marginBottom: 8,
+  },
+  bulkItem: {
+    flex: 1,
+  },
+  btnClear: {
     borderWidth: 1,
     borderStyle: 'dashed',
     borderColor: 'rgba(199, 62, 62, 0.45)',
@@ -217,6 +257,17 @@ const styles = StyleSheet.create({
   itemNameChecked: {
     color: '#9ab3ac',
     textDecorationLine: 'line-through',
+  },
+  boughtBtn: {
+    backgroundColor: '#0d8f7a',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  boughtBtnText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   deleteBtn: {
     width: 44,

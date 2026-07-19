@@ -18,15 +18,19 @@ import {
   matchRecipeAgainstStock,
   getMissingIngredients,
   normalizeIngredientName,
+  findFoodByName,
 } from '../utils/recipeMatching';
 import RecipeCard from '../components/recipe/RecipeCard';
 import RecipeFormModal from '../components/recipe/RecipeFormModal';
 import RecipeDetailModal from '../components/recipe/RecipeDetailModal';
 import ShoppingListView from '../components/recipe/ShoppingListView';
+import PurchasedModal from '../components/recipe/PurchasedModal';
+import { StorageLocation } from '../types/food';
 
 // 再起動時のID衝突を避けるため時刻起点の連番を採用（シードIDの1〜3とは衝突しない）
 let nextRecipeId = Date.now();
 let nextShoppingId = Date.now();
+let nextFoodId = Date.now();
 
 type Segment = 'recipes' | 'shopping';
 
@@ -44,6 +48,7 @@ export default function RecipeScreen() {
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [detailRecipe, setDetailRecipe] = useState<Recipe | null>(null);
+  const [purchasedItem, setPurchasedItem] = useState<ShoppingItem | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -156,6 +161,40 @@ export default function RecipeScreen() {
     shoppingRepo.clearChecked();
   }, [shoppingRepo]);
 
+  const handleClearAll = useCallback(() => {
+    setShoppingItems([]);
+    shoppingRepo.clearAll();
+  }, [shoppingRepo]);
+
+  const purchasedMatchedFood = purchasedItem ? findFoodByName(foodItems, purchasedItem.name) : undefined;
+
+  const handlePurchasedConfirm = useCallback(
+    (expiryDate: string | undefined, location: StorageLocation) => {
+      if (!purchasedItem) return;
+      const matched = findFoodByName(foodItems, purchasedItem.name);
+      if (matched) {
+        const updated: FoodItem = { ...matched, stockLevel: 2, expiryDate };
+        setFoodItems((prev) => prev.map((f) => (f.id === matched.id ? updated : f)));
+        foodRepo.update(updated);
+      } else {
+        const newFood: FoodItem = {
+          id: String(nextFoodId++),
+          name: purchasedItem.name,
+          stockLevel: 2,
+          expiryDate,
+          tags: [],
+          location,
+        };
+        setFoodItems((prev) => [...prev, newFood]);
+        foodRepo.add(newFood);
+      }
+      setShoppingItems((prev) => prev.filter((item) => item.id !== purchasedItem.id));
+      shoppingRepo.delete(purchasedItem.id);
+      setPurchasedItem(null);
+    },
+    [purchasedItem, foodItems, foodRepo, shoppingRepo],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: Recipe }) => (
       <RecipeCard
@@ -257,6 +296,8 @@ export default function RecipeScreen() {
           onToggleChecked={handleToggleChecked}
           onDelete={handleShoppingDelete}
           onClearChecked={handleClearChecked}
+          onClearAll={handleClearAll}
+          onBought={setPurchasedItem}
         />
       )}
 
@@ -264,6 +305,7 @@ export default function RecipeScreen() {
       <RecipeFormModal
         visible={isFormVisible}
         recipe={editingRecipe}
+        foodItems={foodItems}
         onSave={handleSave}
         onClose={() => {
           setIsFormVisible(false);
@@ -278,6 +320,15 @@ export default function RecipeScreen() {
         match={detailRecipe ? matchRecipeAgainstStock(detailRecipe, foodItems) : null}
         onAddMissingToShopping={handleAddMissingToShopping}
         onClose={() => setDetailRecipe(null)}
+      />
+
+      {/* 買ってきたモーダル */}
+      <PurchasedModal
+        visible={purchasedItem !== null}
+        item={purchasedItem}
+        matchedFood={purchasedMatchedFood ?? null}
+        onConfirm={handlePurchasedConfirm}
+        onClose={() => setPurchasedItem(null)}
       />
     </SafeAreaView>
   );

@@ -104,4 +104,13 @@ describe('LocalShoppingRepository', () => {
 
     expect(mockDb.runSync).toHaveBeenCalledWith('DELETE FROM shopping_items WHERE checked = 1;');
   });
+
+  it('clearAllが全行を一括削除する', async () => {
+    const repo = new LocalShoppingRepository();
+    mockDb.runSync.mockClear();
+
+    await repo.clearAll();
+
+    expect(mockDb.runSync).toHaveBeenCalledWith('DELETE FROM shopping_items;');
+  });
 });

@@ -378,4 +378,62 @@ describe('ShoppingList', () => {
     await element(by.text('🗑')).tap();
     await expect(element(by.text('CCC'))).not.toBeVisible();
   });
+
+  it('すべて削除ボタンで買い物リストを空にできる', async () => {
+    await element(by.id('segment-shopping')).tap();
+    await element(by.id('shopping-add-input')).typeText('AAA');
+    await element(by.id('btn-shopping-add')).tap();
+    await element(by.id('shopping-add-input')).typeText('BBB');
+    await element(by.id('btn-shopping-add')).tap();
+    await element(by.id('btn-clear-all')).tap();
+    // 確認ダイアログを承認
+    await element(by.text('削除する')).tap();
+    await expect(element(by.text('買い物リストは空です'))).toBeVisible();
+  });
+
+  it('買ってきたボタンで既存食材の在庫が更新されレシピが作れるようになる', async () => {
+    // 親子丼(id=2)の不足材料（鶏もも肉・卵）を買い物リストに追加
+    await element(by.id('recipe-item-2')).tap();
+    await element(by.id('btn-add-missing-to-shopping')).tap();
+    // 1件目（鶏もも肉）を「買ってきた」→ 既存食材のため保管場所選択は出ない
+    await element(by.text('買ってきた')).atIndex(0).tap();
+    await expect(element(by.id('purchased-sheet'))).toBeVisible();
+    await element(by.id('purchased-submit')).tap();
+    // 2件目（卵）も「買ってきた」
+    await element(by.text('買ってきた')).atIndex(0).tap();
+    await element(by.id('purchased-submit')).tap();
+    await expect(element(by.text('買い物リストは空です'))).toBeVisible();
+    // 在庫が更新され親子丼が「作れる」に変わる
+    await element(by.id('segment-recipes')).tap();
+    await expect(element(by.id('recipe-badge-2'))).toHaveDescendant(by.text('作れる'));
+  });
+
+  it('買ってきたボタンで在庫にない品目は保管場所を選んで新規登録できる', async () => {
+    await element(by.id('segment-shopping')).tap();
+    await element(by.id('shopping-add-input')).typeText('NewFood');
+    await element(by.id('btn-shopping-add')).tap();
+    await element(by.text('買ってきた')).tap();
+    // 在庫にない品目なので保管場所セレクターが表示される
+    await expect(element(by.id('purchased-location-freezer'))).toBeVisible();
+    await element(by.id('purchased-location-freezer')).tap();
+    await element(by.id('purchased-submit')).tap();
+    // 食品保管画面の冷凍庫タブに新規食材が登録されている
+    await element(by.id('bottom-tab-storage')).tap();
+    await element(by.id('tab-freezer')).tap();
+    await waitFor(element(by.text('NewFood')))
+      .toBeVisible()
+      .whileElement(by.id('food-list'))
+      .scroll(300, 'down');
+  });
+
+  it('レシピの材料入力で在庫食材のサジェストから選択できる', async () => {
+    await element(by.id('btn-add-recipe')).tap();
+    await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
+    // 材料名欄にフォーカスすると在庫食材の候補チップが表示される
+    await element(by.id('recipe-form-ingredient-name-0')).tap();
+    // 牛乳(id=1)のチップをタップすると材料名に入る
+    await element(by.id('recipe-form-suggestion-0-1')).tap();
+    await expect(element(by.id('recipe-form-ingredient-name-0'))).toHaveText('牛乳');
+    await element(by.id('recipe-form-cancel')).tap();
+  });
 });
