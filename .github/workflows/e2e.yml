@@ -36,6 +36,11 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      # ubuntu-latest のイメージ更新で libpulse0 が同梱されなくなり、
+      # エミュレータ(qemu)が libpulse.so.0 を見つけられず起動失敗するため明示的にインストールする
+      - name: Install emulator dependencies (libpulse0)
+        run: sudo apt-get update && sudo apt-get install -y libpulse0
+
       - name: Enable KVM (hardware acceleration)
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
