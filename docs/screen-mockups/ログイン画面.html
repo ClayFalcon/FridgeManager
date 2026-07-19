@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ログイン画面 — FridgeManager</title>
+  <style>
+    :root {
+      --bg: #e8f4f0;
+      --surface: #ffffff;
+      --text: #1a2e2a;
+      --muted: #5c7a72;
+      --accent: #0d8f7a;
+      --accent-soft: #c5ebe2;
+      --firebase: #ff9100;
+      --firebase-soft: #fff3e0;
+      --shadow: 0 2px 12px rgba(13, 47, 40, 0.08);
+      --radius: 14px;
+      --font: system-ui, "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: var(--font);
+      background: linear-gradient(165deg, #d4ebe4 0%, var(--bg) 45%, #dceef5 100%);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 24px 16px 32px;
+    }
+
+    .phone {
+      width: 100%;
+      max-width: 400px;
+      min-height: min(640px, 100dvh - 48px);
+      background: var(--surface);
+      border-radius: 28px;
+      box-shadow: var(--shadow), 0 24px 48px rgba(13, 47, 40, 0.12);
+      display: flex;
+      flex-direction: column;
+      padding: 36px 24px 32px;
+    }
+
+    .brand {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-mark {
+      font-size: 3rem;
+      line-height: 1;
+      margin-bottom: 12px;
+      user-select: none;
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: 1.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+    }
+
+    .brand-tagline {
+      margin: 10px 0 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .panel {
+      border-radius: var(--radius);
+      padding: 18px 16px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(13, 143, 122, 0.18);
+      background: linear-gradient(180deg, #fafcfb, #f4faf8);
+    }
+
+    .panel--firebase {
+      border-color: rgba(255, 145, 0, 0.35);
+      background: linear-gradient(180deg, #fffefb, var(--firebase-soft));
+    }
+
+    .panel h2 {
+      margin: 0 0 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .panel p {
+      margin: 0 0 14px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      font-family: inherit;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s, filter 0.15s, box-shadow 0.15s;
+      text-align: center;
+    }
+
+    .btn:active {
+      transform: scale(0.99);
+    }
+
+    .btn--personal {
+      background: var(--surface);
+      color: var(--accent);
+      border: 2px solid var(--accent);
+      box-shadow: 0 2px 8px rgba(13, 143, 122, 0.12);
+    }
+
+    .btn--personal:hover {
+      background: var(--accent-soft);
+    }
+
+    .btn--anon {
+      background: linear-gradient(180deg, #ffa726, var(--firebase));
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(255, 145, 0, 0.35);
+    }
+
+    .btn--anon:hover {
+      filter: brightness(1.05);
+    }
+
+    .btn-sub {
+      display: block;
+      margin-top: 6px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      opacity: 0.95;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      margin-bottom: 8px;
+      letter-spacing: 0.04em;
+    }
+
+    .badge--firebase {
+      background: var(--firebase-soft);
+      color: #e65100;
+    }
+
+    .footnote {
+      margin-top: auto;
+      padding-top: 20px;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.55;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="phone" role="application" aria-label="ログイン画面">
+    <header class="brand">
+      <div class="brand-mark" aria-hidden="true">🧊</div>
+      <h1 class="brand-title">FridgeManager</h1>
+      <p class="brand-tagline">冷蔵庫の中身をかんたん管理。お使いのスタイルに合わせて、はじめ方をお選びください。</p>
+    </header>
+
+    <section class="panel" aria-labelledby="heading-personal">
+      <span class="badge">この端末だけ</span>
+      <h2 id="heading-personal">個人モード（ログインなし）</h2>
+      <p>
+        メールアドレスやパスワードは不要です。このスマートフォンの中だけで食品リストを管理し、データもこの端末に保存されます。ご家族との共有や別の端末との同期は行いません。
+      </p>
+      <button type="button" class="btn btn--personal" id="btn-personal">
+        個人モードで始める
+      </button>
+    </section>
+
+    <section class="panel panel--firebase" aria-labelledby="heading-anon">
+      <span class="badge badge--firebase">クラウド同期</span>
+      <h2 id="heading-anon">匿名ログイン（Firebase）</h2>
+      <p>
+        インターネット経由でデータを同期し、複数のスマートフォンやタブレットで同じリストを見られます。家族や同居の方と共有するのにも向いています。氏名やメールの登録は不要で、あとからLINEやGoogleなど別の方法でログインし直すこともできます。
+      </p>
+      <button type="button" class="btn btn--anon" id="btn-anon">
+        <span>匿名ログインで続行</span>
+        <span class="btn-sub">メール・パスワードは不要</span>
+      </button>
+    </section>
+
+    <p class="footnote">
+      通信内容は暗号化されます。詳しくはアプリ内のプライバシーポリシーをご確認ください。
+    </p>
+  </div>
+
+  <script>
+    (function () {
+      document.getElementById('btn-personal').addEventListener('click', function () {
+        window.alert('個人モードでFridgeManagerをはじめます。');
+      });
+      document.getElementById('btn-anon').addEventListener('click', function () {
+        window.alert('匿名ログインして、クラウド同期をはじめます。');
+      });
+    })();
+  </script>
+</body>
+</html>
