@@ -4,23 +4,27 @@
 
 ## 現在の状態
 
-Issue #11（プッシュ通知）の実装が完了（未コミット・未push）。
-Firebase Cloud Functions / Blazeプランは導入せず、以下の構成で実現した:
-- 他メンバー通知: クライアントからExpo Push APIを直接呼び出し、Firestoreルールで5分間のレート制限を強制
-- 賞味期限リマインダー: 端末ローカルの `expo-notifications` スケジュール通知（サーバー非依存）
-- 通知タップ時の画面遷移: 既存の`useState`ベースの画面切替パターンを拡張
+レシピタブ + 買い物リスト + ボトムタブバーの実装が完了（ローカルコミット済み・未push）。
+- ボトムタブバー（自前実装、食品保管/レシピ。将来 #15 履歴タブを配列1行で追加可能）
+- レシピCRUD + 在庫照合（作れる/不足n品バッジ、詳細で材料別の在庫状況）
+- 買い物リスト（不足材料のワンタップ追加・手動追加・チェック・一括削除）
+- データは食材と同じ2層構成（ローカルSQLite / Googleリンク時Firestore共有）。Googleリンク時の移行も対応
+- 設定はタブ化せず⚙️ボタン遷移のまま（ユーザー方針: 今後そこに項目を充実させる）
 
-`npm run test:unit` は全69件（うち新規39件）成功。
+その前のセッションで Issue #11（プッシュ通知）も実装完了・コミット済み（未push）。
+Cloud Functions/Blazeは不使用（Expo Push直接呼び出し + ローカル通知 + Firestoreルールでレート制限）。
+
+`npm run test:unit` は全102件成功。Detox E2E はレシピ・買い物リスト関連を14件追加（CIで実行）。
 
 ## 次にやること
 
-1. `git status` で差分を確認し、コミット・push（ユーザーの指示待ち）
-2. ユーザー側の手動セットアップを実施:
+1. 未pushコミット群（#11プッシュ通知 + レシピ機能5コミット）をpushしてCI（unit/e2e）の成功を確認
+2. プッシュ通知のユーザー側手動セットアップ:
    - `eas init` で EAS プロジェクトを作成し `app.json` の `extra.eas.projectId` を埋める
    - `firebase init firestore`（または `firebase.json`/`.firebaserc` を手動作成）→ `firebase deploy --only firestore:rules`
-3. Android実機/エミュレータで動作確認（`e2e/manual/notifications.md` の手順に沿って）
-4. GitHub Issue #14 は実装済みでクローズ済み。Issue #11 も実装完了後にクローズする
-5. 残タスク: Issue #12（設定画面）、#13（テーマカラー）、#15（履歴タブ、#11から派生・新規作成）
+3. Android実機でプッシュ通知の動作確認（`e2e/manual/notifications.md`）→ 確認後 Issue #11 をクローズ
+4. レシピ機能をエミュレータで動作確認（タブ切替・バッジ・CRUD・買い物リスト）
+5. 残タスク: Issue #12（設定画面の項目充実: ステータスモード切替等）、#13（テーマカラー）、#15（履歴タブ）
 
 ## 判明した重要事項
 
@@ -53,6 +57,19 @@ Firebase Cloud Functions / Blazeプランは導入せず、以下の構成で実
   （pre-existing、本セッションでは対応せず）。
 
 ## 作業ログ
+
+### 2026-07-19（レシピタブ）
+- レシピタブ・買い物リスト・ボトムタブバーを実装（5コミットに分割）
+  - 型 + `recipeMatching.ts`（NFKC正規化・在庫照合の純粋関数）
+  - リポジトリ層（Local/Cloud × Recipe/Shopping、`initialRecipes.json` シード3件、
+    `MigrationService` ジェネリック化、`firestore.rules` に recipes/shopping_items 追加）
+  - `BottomTabBar` + `App.js` タブ統合（設定は⚙️遷移のまま。通知ディープリンクは食品保管タブへ）
+  - `RecipeScreen`（セグメント切替: レシピ/買い物リスト）+ `RecipeCard`/`RecipeFormModal`/
+    `RecipeDetailModal`/`ShoppingListView`
+  - ID採番は再起動時の主キー衝突を避けるため `Date.now()` 起点の連番（食品の `nextId=100` 方式は不採用）
+  - Jest 44件追加（全102件）、Detox E2E 14件追加
+- 設計判断: 買い物リストはレシピタブ内セグメント（第3タブにしない）。レシピデータモデルは
+  Reizoukoより大幅簡素化（材料は `{name, quantity?}` のみ、難易度・必須/任意区分なし）
 
 ### 2026-07-19
 - Issue #14を実装済みとしてクローズ、未コミット差分（.gitignore整備・CLAUDE.md・docsモックアップ）をコミットしてpush

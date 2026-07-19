@@ -326,3 +326,56 @@ describe('BottomTabBar / RecipeScreen', () => {
     await expect(element(by.id('recipe-screen'))).toBeVisible();
   });
 });
+
+describe('ShoppingList', () => {
+  beforeAll(async () => {
+    await device.launchApp();
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
+  });
+
+  beforeEach(async () => {
+    await device.launchApp({ delete: true });
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
+    await waitFor(element(by.id('btn-add-food'))).toBeVisible().withTimeout(10000);
+    await element(by.id('bottom-tab-recipes')).tap();
+  });
+
+  it('不足分を買い物リストに追加できる', async () => {
+    // 親子丼(id=2)の不足材料（鶏もも肉・卵）を追加 → 買い物リストへ自動遷移
+    await element(by.id('recipe-item-2')).tap();
+    await element(by.id('btn-add-missing-to-shopping')).tap();
+    await expect(element(by.id('shopping-list'))).toBeVisible();
+    await expect(element(by.text('鶏もも肉'))).toBeVisible();
+    await expect(element(by.text('卵'))).toBeVisible();
+  });
+
+  it('手動で品目を追加できる', async () => {
+    await element(by.id('segment-shopping')).tap();
+    await element(by.id('shopping-add-input')).typeText('Bread');
+    await element(by.id('btn-shopping-add')).tap();
+    await expect(element(by.text('Bread'))).toBeVisible();
+  });
+
+  it('チェックを付けてチェック済みを一括削除できる', async () => {
+    await element(by.id('segment-shopping')).tap();
+    await element(by.id('shopping-add-input')).typeText('AAA');
+    await element(by.id('btn-shopping-add')).tap();
+    await element(by.id('shopping-add-input')).typeText('BBB');
+    await element(by.id('btn-shopping-add')).tap();
+    // 品名タップでチェックが付く
+    await element(by.text('AAA')).tap();
+    await element(by.id('btn-clear-checked')).tap();
+    await expect(element(by.text('AAA'))).not.toBeVisible();
+    await expect(element(by.text('BBB'))).toBeVisible();
+  });
+
+  it('品目を個別削除できる', async () => {
+    await element(by.id('segment-shopping')).tap();
+    await element(by.id('shopping-add-input')).typeText('CCC');
+    await element(by.id('btn-shopping-add')).tap();
+    await expect(element(by.text('CCC'))).toBeVisible();
+    // 品目が1件のみなのでゴミ箱アイコンは一意
+    await element(by.text('🗑')).tap();
+    await expect(element(by.text('CCC'))).not.toBeVisible();
+  });
+});

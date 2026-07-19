@@ -22,10 +22,13 @@ import {
 import RecipeCard from '../components/recipe/RecipeCard';
 import RecipeFormModal from '../components/recipe/RecipeFormModal';
 import RecipeDetailModal from '../components/recipe/RecipeDetailModal';
+import ShoppingListView from '../components/recipe/ShoppingListView';
 
 // 再起動時のID衝突を避けるため時刻起点の連番を採用（シードIDの1〜3とは衝突しない）
 let nextRecipeId = Date.now();
 let nextShoppingId = Date.now();
+
+type Segment = 'recipes' | 'shopping';
 
 export default function RecipeScreen() {
   const recipeRepo = useRecipeRepository();
@@ -36,6 +39,7 @@ export default function RecipeScreen() {
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [segment, setSegment] = useState<Segment>('recipes');
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
@@ -117,9 +121,40 @@ export default function RecipeScreen() {
       setShoppingItems((prev) => [...prev, ...newItems]);
       newItems.forEach((item) => shoppingRepo.add(item));
       setDetailRecipe(null);
+      setSegment('shopping');
     },
     [foodItems, shoppingItems, shoppingRepo],
   );
+
+  const handleShoppingAdd = useCallback(
+    (name: string) => {
+      const newItem: ShoppingItem = { id: String(nextShoppingId++), name, checked: false };
+      setShoppingItems((prev) => [...prev, newItem]);
+      shoppingRepo.add(newItem);
+    },
+    [shoppingRepo],
+  );
+
+  const handleToggleChecked = useCallback(
+    (id: string, checked: boolean) => {
+      setShoppingItems((prev) => prev.map((item) => (item.id === id ? { ...item, checked } : item)));
+      shoppingRepo.setChecked(id, checked);
+    },
+    [shoppingRepo],
+  );
+
+  const handleShoppingDelete = useCallback(
+    (id: string) => {
+      setShoppingItems((prev) => prev.filter((item) => item.id !== id));
+      shoppingRepo.delete(id);
+    },
+    [shoppingRepo],
+  );
+
+  const handleClearChecked = useCallback(() => {
+    setShoppingItems((prev) => prev.filter((item) => !item.checked));
+    shoppingRepo.clearChecked();
+  }, [shoppingRepo]);
 
   const renderItem = useCallback(
     ({ item }: { item: Recipe }) => (
@@ -153,39 +188,77 @@ export default function RecipeScreen() {
         </View>
       </View>
 
-      {/* ツールバー */}
-      <View style={styles.toolbar}>
+      {/* セグメント切替 */}
+      <View style={styles.segmentRow}>
         <TouchableOpacity
-          testID="btn-add-recipe"
-          style={styles.btnAdd}
-          onPress={() => {
-            setEditingRecipe(null);
-            setIsFormVisible(true);
-          }}
+          testID="segment-recipes"
+          style={[styles.segment, segment === 'recipes' && styles.segmentSelected]}
+          onPress={() => setSegment('recipes')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: segment === 'recipes' }}
         >
-          <Text style={styles.btnAddText}>＋ レシピ追加</Text>
+          <Text style={[styles.segmentLabel, segment === 'recipes' && styles.segmentLabelSelected]}>
+            レシピ
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          testID="btn-recipe-delete-mode"
-          style={[styles.btnDelete, isDeleteMode && styles.btnDeleteActive]}
-          onPress={() => setIsDeleteMode((prev) => !prev)}
-          accessibilityState={{ selected: isDeleteMode }}
+          testID="segment-shopping"
+          style={[styles.segment, segment === 'shopping' && styles.segmentSelected]}
+          onPress={() => setSegment('shopping')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: segment === 'shopping' }}
         >
-          <Text style={[styles.btnDeleteText, isDeleteMode && styles.btnDeleteTextActive]}>
-            削除
+          <Text style={[styles.segmentLabel, segment === 'shopping' && styles.segmentLabelSelected]}>
+            買い物リスト
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* レシピリスト */}
-      <FlatList
-        testID="recipe-list"
-        data={recipes}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<Text style={styles.emptyText}>レシピがありません</Text>}
-        renderItem={renderItem}
-      />
+      {segment === 'recipes' ? (
+        <>
+          {/* ツールバー */}
+          <View style={styles.toolbar}>
+            <TouchableOpacity
+              testID="btn-add-recipe"
+              style={styles.btnAdd}
+              onPress={() => {
+                setEditingRecipe(null);
+                setIsFormVisible(true);
+              }}
+            >
+              <Text style={styles.btnAddText}>＋ レシピ追加</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="btn-recipe-delete-mode"
+              style={[styles.btnDelete, isDeleteMode && styles.btnDeleteActive]}
+              onPress={() => setIsDeleteMode((prev) => !prev)}
+              accessibilityState={{ selected: isDeleteMode }}
+            >
+              <Text style={[styles.btnDeleteText, isDeleteMode && styles.btnDeleteTextActive]}>
+                削除
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* レシピリスト */}
+          <FlatList
+            testID="recipe-list"
+            data={recipes}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={<Text style={styles.emptyText}>レシピがありません</Text>}
+            renderItem={renderItem}
+          />
+        </>
+      ) : (
+        <ShoppingListView
+          items={shoppingItems}
+          onAdd={handleShoppingAdd}
+          onToggleChecked={handleToggleChecked}
+          onDelete={handleShoppingDelete}
+          onClearChecked={handleClearChecked}
+        />
+      )}
 
       {/* レシピ追加・編集モーダル */}
       <RecipeFormModal
@@ -241,6 +314,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#5c7a72',
     marginTop: 2,
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+  },
+  segment: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    backgroundColor: '#eef6f3',
+    alignItems: 'center',
+  },
+  segmentSelected: {
+    backgroundColor: '#0d8f7a',
+  },
+  segmentLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#5c7a72',
+  },
+  segmentLabelSelected: {
+    color: '#ffffff',
   },
   toolbar: {
     flexDirection: 'row',
