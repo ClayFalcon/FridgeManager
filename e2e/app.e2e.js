@@ -205,3 +205,51 @@ describe('StorageScreen', () => {
   //       Detox の ReactNativeTimersIdlingResource をブロックし waitFor がタイムアウトする。
   //       RN 0.79 New Architecture + Detox + Firebase Auth の既知の非互換問題。
 });
+
+describe('BottomTabBar / RecipeScreen', () => {
+  beforeAll(async () => {
+    await device.launchApp();
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
+  });
+
+  beforeEach(async () => {
+    await device.launchApp({ delete: true });
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
+    await waitFor(element(by.id('btn-add-food'))).toBeVisible().withTimeout(10000);
+  });
+
+  // ── タブバー ──────────────────────────────────────────
+  it('下部タブバーが表示される', async () => {
+    await expect(element(by.id('bottom-tab-bar'))).toBeVisible();
+    await expect(element(by.id('bottom-tab-storage'))).toBeVisible();
+    await expect(element(by.id('bottom-tab-recipes'))).toBeVisible();
+  });
+
+  it('レシピタブに切り替えられ、食品保管に戻れる', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    await expect(element(by.id('recipe-screen'))).toBeVisible();
+    await element(by.id('bottom-tab-storage')).tap();
+    await expect(element(by.id('storage-screen'))).toBeVisible();
+  });
+
+  // ── 初期レシピとバッジ ────────────────────────────────
+  it('初期レシピ3件と在庫照合バッジが表示される', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    // トマトパスタ: トマト(在庫2)・パスタ(在庫1) → 作れる
+    await expect(element(by.text('トマトパスタ'))).toBeVisible();
+    await expect(element(by.id('recipe-badge-1'))).toHaveDescendant(by.text('作れる'));
+    // 親子丼: 鶏もも肉(在庫0)・卵(在庫0)・米(在庫2) → 不足2品
+    await expect(element(by.id('recipe-badge-2'))).toHaveDescendant(by.text('不足2品'));
+    // ハムサラダ: レタス(在庫1)・ハム(在庫1)・きゅうり(在庫0) → 不足1品
+    await expect(element(by.id('recipe-badge-3'))).toHaveDescendant(by.text('不足1品'));
+  });
+
+  it('在庫を変えるとバッジが更新される', async () => {
+    // きゅうり(id=8, 野菜室)の在庫を「買ったばかり」に変更
+    await element(by.id('tab-vegetable')).tap();
+    await element(by.id('stock-btn-8-2')).tap();
+    // レシピタブでハムサラダが「作れる」に変わる
+    await element(by.id('bottom-tab-recipes')).tap();
+    await expect(element(by.id('recipe-badge-3'))).toHaveDescendant(by.text('作れる'));
+  });
+});
