@@ -24,27 +24,33 @@ export default function AddFoodModal({ visible, location, onAdd, onClose }: Prop
   const [name, setName] = useState('');
   const [stockLevel, setStockLevel] = useState<StockLevel>(2);
   const [expiryDate, setExpiryDate] = useState<string | undefined>(undefined);
+  const [expiryDays, setExpiryDays] = useState('');
+
+  function reset() {
+    setName('');
+    setStockLevel(2);
+    setExpiryDate(undefined);
+    setExpiryDays('');
+  }
 
   function handleAdd() {
     const trimmed = name.trim();
     if (!trimmed) return;
+    const parsedDays = parseInt(expiryDays, 10);
     onAdd({
       name: trimmed,
       stockLevel,
       tags: [],
       location,
       expiryDate,
+      defaultExpiryDays: isNaN(parsedDays) ? undefined : parsedDays,
     });
-    setName('');
-    setStockLevel(2);
-    setExpiryDate(undefined);
+    reset();
     onClose();
   }
 
   function handleClose() {
-    setName('');
-    setStockLevel(2);
-    setExpiryDate(undefined);
+    reset();
     onClose();
   }
 
@@ -83,6 +89,17 @@ export default function AddFoodModal({ visible, location, onAdd, onClose }: Prop
             testID="add-food-expiry-input"
             value={expiryDate}
             onChange={setExpiryDate}
+          />
+
+          <Text style={styles.fieldLabel}>賞味期限の目安（日数）</Text>
+          <TextInput
+            testID="add-food-expiry-days-input"
+            style={styles.input}
+            value={expiryDays}
+            onChangeText={(t) => setExpiryDays(t.replace(/[^0-9]/g, ''))}
+            placeholder="例: 7（買ってきた時に今日+7日を初期値にする）"
+            placeholderTextColor="#aaa"
+            keyboardType="number-pad"
           />
 
           <Text style={styles.fieldLabel}>在庫</Text>

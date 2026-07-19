@@ -1,21 +1,21 @@
 [
-  { "id": "1",  "name": "牛乳",       "icon": "🥛", "stockLevel": 2, "expiryDate": "2026-04-08", "tags": ["乳製品"],        "location": "fridge" },
-  { "id": "2",  "name": "卵",         "icon": "🥚", "stockLevel": 0, "expiryDate": "2099-12-31", "tags": ["卵"],            "location": "fridge" },
-  { "id": "3",  "name": "ハム",       "icon": "🥓", "stockLevel": 1, "expiryDate": "",           "tags": ["肉類", "加工品"],"location": "fridge" },
-  { "id": "4",  "name": "豆腐",       "icon": "🫘", "stockLevel": 1, "expiryDate": "2000-01-01", "tags": ["大豆"],          "location": "fridge" },
-  { "id": "5",  "name": "ヨーグルト", "icon": "🍦", "stockLevel": 0, "expiryDate": "2026-04-20", "tags": ["乳製品"],        "location": "fridge" },
+  { "id": "1",  "name": "牛乳",       "icon": "🥛", "stockLevel": 2, "expiryDate": "2026-04-08", "tags": ["乳製品"],        "location": "fridge",    "defaultExpiryDays": 7 },
+  { "id": "2",  "name": "卵",         "icon": "🥚", "stockLevel": 0, "expiryDate": "2099-12-31", "tags": ["卵"],            "location": "fridge",    "defaultExpiryDays": 14 },
+  { "id": "3",  "name": "ハム",       "icon": "🥓", "stockLevel": 1, "expiryDate": "",           "tags": ["肉類", "加工品"],"location": "fridge",    "defaultExpiryDays": 5 },
+  { "id": "4",  "name": "豆腐",       "icon": "🫘", "stockLevel": 1, "expiryDate": "2000-01-01", "tags": ["大豆"],          "location": "fridge",    "defaultExpiryDays": 5 },
+  { "id": "5",  "name": "ヨーグルト", "icon": "🍦", "stockLevel": 0, "expiryDate": "2026-04-20", "tags": ["乳製品"],        "location": "fridge",    "defaultExpiryDays": 14 },
 
-  { "id": "6",  "name": "レタス",     "icon": "🥬", "stockLevel": 1, "expiryDate": "2026-04-04", "tags": ["葉物野菜"],      "location": "vegetable" },
-  { "id": "7",  "name": "トマト",     "icon": "🍅", "stockLevel": 2, "expiryDate": "",           "tags": ["果菜類"],        "location": "vegetable" },
-  { "id": "8",  "name": "きゅうり",   "icon": "🥒", "stockLevel": 0, "expiryDate": "2026-04-06", "tags": ["野菜"],          "location": "vegetable" },
-  { "id": "9",  "name": "ほうれん草", "icon": "🥬", "stockLevel": 1, "expiryDate": "2026-04-03", "tags": ["葉物野菜"],      "location": "vegetable" },
+  { "id": "6",  "name": "レタス",     "icon": "🥬", "stockLevel": 1, "expiryDate": "2026-04-04", "tags": ["葉物野菜"],      "location": "vegetable", "defaultExpiryDays": 5 },
+  { "id": "7",  "name": "トマト",     "icon": "🍅", "stockLevel": 2, "expiryDate": "",           "tags": ["果菜類"],        "location": "vegetable", "defaultExpiryDays": 7 },
+  { "id": "8",  "name": "きゅうり",   "icon": "🥒", "stockLevel": 0, "expiryDate": "2026-04-06", "tags": ["野菜"],          "location": "vegetable", "defaultExpiryDays": 5 },
+  { "id": "9",  "name": "ほうれん草", "icon": "🥬", "stockLevel": 1, "expiryDate": "2026-04-03", "tags": ["葉物野菜"],      "location": "vegetable", "defaultExpiryDays": 3 },
 
-  { "id": "10", "name": "冷凍餃子",   "icon": "🥟", "stockLevel": 1, "expiryDate": "2026-08-01", "tags": ["冷凍食品"],      "location": "freezer" },
-  { "id": "11", "name": "枝豆",       "icon": "🫛", "stockLevel": 2, "expiryDate": "2026-12-31", "tags": ["野菜", "冷凍"],  "location": "freezer" },
-  { "id": "12", "name": "鶏もも肉",   "icon": "🍗", "stockLevel": 0, "expiryDate": "2026-05-15", "tags": ["肉類"],          "location": "freezer" },
+  { "id": "10", "name": "冷凍餃子",   "icon": "🥟", "stockLevel": 1, "expiryDate": "2026-08-01", "tags": ["冷凍食品"],      "location": "freezer",   "defaultExpiryDays": 90 },
+  { "id": "11", "name": "枝豆",       "icon": "🫛", "stockLevel": 2, "expiryDate": "2026-12-31", "tags": ["野菜", "冷凍"],  "location": "freezer",   "defaultExpiryDays": 90 },
+  { "id": "12", "name": "鶏もも肉",   "icon": "🍗", "stockLevel": 0, "expiryDate": "2026-05-15", "tags": ["肉類"],          "location": "freezer",   "defaultExpiryDays": 2 },
 
-  { "id": "13", "name": "米",         "icon": "🍚", "stockLevel": 2, "expiryDate": "2026-10-01", "tags": ["主食", "乾物"],  "location": "pantry" },
-  { "id": "14", "name": "パスタ",     "icon": "🍝", "stockLevel": 1, "expiryDate": "",           "tags": ["主食"],          "location": "pantry" },
-  { "id": "15", "name": "缶詰（ツナ）","icon": "🥫","stockLevel": 0, "expiryDate": "2027-01-15", "tags": ["保存食"],        "location": "pantry" },
-  { "id": "16", "name": "しょうゆ",   "icon": "🫗", "stockLevel": 1, "expiryDate": "",           "tags": ["調味料"],        "location": "pantry" }
+  { "id": "13", "name": "米",         "icon": "🍚", "stockLevel": 2, "expiryDate": "2026-10-01", "tags": ["主食", "乾物"],  "location": "pantry",    "defaultExpiryDays": 365 },
+  { "id": "14", "name": "パスタ",     "icon": "🍝", "stockLevel": 1, "expiryDate": "",           "tags": ["主食"],          "location": "pantry",    "defaultExpiryDays": 365 },
+  { "id": "15", "name": "缶詰（ツナ）","icon": "🥫","stockLevel": 0, "expiryDate": "2027-01-15", "tags": ["保存食"],        "location": "pantry",    "defaultExpiryDays": 730 },
+  { "id": "16", "name": "しょうゆ",   "icon": "🫗", "stockLevel": 1, "expiryDate": "",           "tags": ["調味料"],        "location": "pantry",    "defaultExpiryDays": 365 }
 ]

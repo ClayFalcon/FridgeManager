@@ -26,6 +26,7 @@ export default function EditFoodModal({ visible, item, onSave, onClose }: Props)
   const [icon, setIcon] = useState('');
   const [tags, setTags] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [expiryDays, setExpiryDays] = useState('');
   const [stockLevel, setStockLevel] = useState<StockLevel>(2);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export default function EditFoodModal({ visible, item, onSave, onClose }: Props)
       setIcon(item.icon ?? '');
       setTags(item.tags.join(', '));
       setExpiryDate(item.expiryDate ?? '');
+      setExpiryDays(item.defaultExpiryDays !== undefined ? String(item.defaultExpiryDays) : '');
       setStockLevel(item.stockLevel);
     }
   }, [item]);
@@ -41,6 +43,7 @@ export default function EditFoodModal({ visible, item, onSave, onClose }: Props)
   function handleSave() {
     const trimmed = name.trim();
     if (!trimmed || !item) return;
+    const parsedDays = parseInt(expiryDays, 10);
     onSave({
       ...item,
       name: trimmed,
@@ -50,6 +53,7 @@ export default function EditFoodModal({ visible, item, onSave, onClose }: Props)
         .map((t) => t.trim())
         .filter(Boolean),
       expiryDate: expiryDate.trim() || undefined,
+      defaultExpiryDays: isNaN(parsedDays) ? undefined : parsedDays,
       stockLevel,
     });
     onClose();
@@ -118,6 +122,17 @@ export default function EditFoodModal({ visible, item, onSave, onClose }: Props)
             testID="edit-food-expiry-input"
             value={expiryDate || undefined}
             onChange={(v) => setExpiryDate(v ?? '')}
+          />
+
+          <Text style={styles.fieldLabel}>賞味期限の目安（日数）</Text>
+          <TextInput
+            testID="edit-food-expiry-days-input"
+            style={styles.input}
+            value={expiryDays}
+            onChangeText={(t) => setExpiryDays(t.replace(/[^0-9]/g, ''))}
+            placeholder="例: 7（買ってきた時に今日+7日を初期値にする）"
+            placeholderTextColor="#aaa"
+            keyboardType="number-pad"
           />
 
           <Text style={styles.fieldLabel}>在庫</Text>

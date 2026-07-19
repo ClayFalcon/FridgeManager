@@ -1,5 +1,24 @@
 export type ExpiryStatus = 'expired' | 'near' | 'ok' | 'none';
 
+/**
+ * 「買ってきた」時の賞味期限初期値を計算する。
+ * 食材に目安日数（defaultExpiryDays）が設定されていれば「今日 + 日数」のISO日付、なければ undefined
+ */
+export function defaultExpiryDateFor(
+  food: { defaultExpiryDays?: number } | null | undefined,
+  from: Date = new Date(),
+): string | undefined {
+  const days = food?.defaultExpiryDays;
+  if (days === undefined || days === null) return undefined;
+
+  const d = new Date(from);
+  d.setDate(d.getDate() + days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /** 賞味期限の状態を返す。near は残り3日以内（当日含まず）*/
 export function getExpiryStatus(expiryDate: string | undefined): ExpiryStatus {
   if (!expiryDate || !expiryDate.trim()) return 'none';

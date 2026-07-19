@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { ShoppingItem } from '../../types/shopping';
 import { FoodItem, StorageLocation, STORAGE_LOCATIONS, LOCATION_LABELS } from '../../types/food';
+import { defaultExpiryDateFor } from '../../utils/expiryUtils';
 import DatePickerField from '../storage/DatePickerField';
 
 interface Props {
@@ -25,7 +26,8 @@ export default function PurchasedModal({ visible, item, matchedFood, onConfirm, 
 
   useEffect(() => {
     if (visible) {
-      setExpiryDate(matchedFood?.expiryDate || undefined);
+      // 目安日数が設定されていれば「今日 + 日数」を初期値にする（古い賞味期限は引き継がない）
+      setExpiryDate(defaultExpiryDateFor(matchedFood));
       setLocation(matchedFood?.location ?? 'fridge');
     }
   }, [visible, matchedFood]);

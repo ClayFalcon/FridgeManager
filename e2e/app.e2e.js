@@ -131,6 +131,23 @@ describe('StorageScreen', () => {
     await expect(element(by.id('storage-screen'))).toBeVisible();
   });
 
+  it('賞味期限の目安日数を編集して保存できる', async () => {
+    // 牛乳(id=1)はシードで目安7日
+    await element(by.id('edit-btn-1')).tap();
+    await expect(element(by.id('edit-food-expiry-days-input'))).toHaveText('7');
+    await element(by.id('edit-food-expiry-days-input')).clearText();
+    await element(by.id('edit-food-expiry-days-input')).typeText('5');
+    await waitFor(element(by.id('edit-food-submit')))
+      .toBeVisible()
+      .whileElement(by.id('edit-food-sheet'))
+      .scroll(300, 'down');
+    await element(by.id('edit-food-submit')).tap();
+    // 再度開いて保存されていることを確認
+    await element(by.id('edit-btn-1')).tap();
+    await expect(element(by.id('edit-food-expiry-days-input'))).toHaveText('5');
+    await element(by.id('edit-food-cancel')).tap();
+  });
+
   // ── 削除確認ダイアログ ────────────────────────────────
   it('削除確認ダイアログが表示され、削除できる', async () => {
     await element(by.id('btn-delete-mode')).tap();
@@ -424,6 +441,21 @@ describe('ShoppingList', () => {
       .toBeVisible()
       .whileElement(by.id('food-list'))
       .scroll(300, 'down');
+  });
+
+  it('買ってきたモーダルの賞味期限初期値が今日+目安日数になる', async () => {
+    // 卵(id=2)はシードで目安14日
+    await element(by.id('recipe-item-2')).tap();
+    await element(by.id('btn-add-missing-to-shopping')).tap();
+    // 2件目（卵）の「買ってきた」を開く（1件目は鶏もも肉）
+    await element(by.text('買ってきた')).atIndex(1).tap();
+    await expect(element(by.id('purchased-sheet'))).toBeVisible();
+    // 今日+14日がDatePickerFieldの表示形式（Y年M月D日）で初期表示される
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    const expected = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+    await expect(element(by.text(expected))).toBeVisible();
+    await element(by.id('purchased-cancel')).tap();
   });
 
   it('レシピの材料入力で在庫食材のサジェストから選択できる', async () => {

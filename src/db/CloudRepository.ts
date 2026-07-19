@@ -23,6 +23,7 @@ function toDoc(item: FoodItem): Record<string, unknown> {
     icon: item.icon ?? null,
     stockLevel: item.stockLevel,
     expiryDate: item.expiryDate ?? null,
+    defaultExpiryDays: item.defaultExpiryDays ?? null,
     tags: item.tags,
     location: item.location,
   };
@@ -35,6 +36,7 @@ function fromDoc(id: string, data: Record<string, unknown>): FoodItem {
     icon: (data.icon as string | null) ?? undefined,
     stockLevel: data.stockLevel as StockLevel,
     expiryDate: (data.expiryDate as string | null) ?? undefined,
+    defaultExpiryDays: (data.defaultExpiryDays as number | null) ?? undefined,
     tags: data.tags as string[],
     location: data.location as FoodItem['location'],
   };

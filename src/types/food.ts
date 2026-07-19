@@ -30,6 +30,8 @@ export interface FoodItem {
   stockLevel: StockLevel;
   /** ISO date string 'YYYY-MM-DD'、未設定は空文字 */
   expiryDate?: string;
+  /** 賞味期限の目安日数（「買ってきた」時の初期値 = 今日 + この日数） */
+  defaultExpiryDays?: number;
   tags: string[];
   location: StorageLocation;
 }
