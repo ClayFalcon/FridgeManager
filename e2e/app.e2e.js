@@ -252,4 +252,77 @@ describe('BottomTabBar / RecipeScreen', () => {
     await element(by.id('bottom-tab-recipes')).tap();
     await expect(element(by.id('recipe-badge-3'))).toHaveDescendant(by.text('作れる'));
   });
+
+  // ── レシピCRUD ────────────────────────────────────────
+  it('レシピを追加できる', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    await element(by.id('btn-add-recipe')).tap();
+    await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
+    // Android CIエミュレーターのIMEは日本語変換不可のためASCII文字を使用
+    await element(by.id('recipe-form-name-input')).typeText('TestRecipe');
+    await element(by.id('recipe-form-ingredient-name-0')).typeText('TestIng');
+    // キーボードでボタンが隠れる場合に備えてスクロール
+    await waitFor(element(by.id('recipe-form-submit')))
+      .toBeVisible()
+      .whileElement(by.id('recipe-form-sheet'))
+      .scroll(200, 'down');
+    await element(by.id('recipe-form-submit')).tap();
+    await waitFor(element(by.text('TestRecipe')))
+      .toBeVisible()
+      .whileElement(by.id('recipe-list'))
+      .scroll(300, 'down');
+  });
+
+  it('レシピ名が空のままでは追加できない', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    await element(by.id('btn-add-recipe')).tap();
+    await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
+    await element(by.id('recipe-form-ingredient-name-0')).typeText('OnlyIng');
+    await element(by.id('recipe-form-submit')).tap();
+    // 名前が空なのでモーダルは閉じない
+    await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
+  });
+
+  it('レシピを編集できる', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    await element(by.id('recipe-edit-btn-1')).tap();
+    await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
+    await element(by.id('recipe-form-name-input')).clearText();
+    await element(by.id('recipe-form-name-input')).typeText('RecipeEdited');
+    await waitFor(element(by.id('recipe-form-submit')))
+      .toBeVisible()
+      .whileElement(by.id('recipe-form-sheet'))
+      .scroll(200, 'down');
+    await element(by.id('recipe-form-submit')).tap();
+    await expect(element(by.text('RecipeEdited'))).toBeVisible();
+  });
+
+  it('レシピを削除できる（確認ダイアログ）', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    await element(by.id('btn-recipe-delete-mode')).tap();
+    await element(by.id('recipe-delete-btn-1')).tap();
+    await element(by.text('削除する')).tap();
+    await expect(element(by.text('トマトパスタ'))).not.toBeVisible();
+  });
+
+  it('レシピ削除の確認ダイアログをキャンセルできる', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    await element(by.id('btn-recipe-delete-mode')).tap();
+    await element(by.id('recipe-delete-btn-1')).tap();
+    await element(by.text('キャンセル')).tap();
+    await expect(element(by.text('トマトパスタ'))).toBeVisible();
+  });
+
+  // ── レシピ詳細 ────────────────────────────────────────
+  it('レシピ詳細で材料ごとの在庫状況が見える', async () => {
+    await element(by.id('bottom-tab-recipes')).tap();
+    // 親子丼(id=2)をタップ → 材料3件の在庫状況
+    await element(by.id('recipe-item-2')).tap();
+    await expect(element(by.id('recipe-detail-sheet'))).toBeVisible();
+    await expect(element(by.id('ingredient-status-0'))).toBeVisible();
+    await expect(element(by.id('ingredient-status-1'))).toBeVisible();
+    await expect(element(by.id('ingredient-status-2'))).toBeVisible();
+    await element(by.id('recipe-detail-close')).tap();
+    await expect(element(by.id('recipe-screen'))).toBeVisible();
+  });
 });

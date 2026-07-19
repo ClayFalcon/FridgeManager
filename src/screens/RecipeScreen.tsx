@@ -3,24 +3,43 @@ import {
   View,
   Text,
   FlatList,
+  TouchableOpacity,
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
 import { Recipe } from '../types/recipe';
 import { FoodItem } from '../types/food';
+import { ShoppingItem } from '../types/shopping';
 import { useRecipeRepository } from '../hooks/useRecipeRepository';
+import { useShoppingRepository } from '../hooks/useShoppingRepository';
 import { useRepository } from '../hooks/useRepository';
-import { matchRecipeAgainstStock } from '../utils/recipeMatching';
+import {
+  matchRecipeAgainstStock,
+  getMissingIngredients,
+  normalizeIngredientName,
+} from '../utils/recipeMatching';
 import RecipeCard from '../components/recipe/RecipeCard';
+import RecipeFormModal from '../components/recipe/RecipeFormModal';
+import RecipeDetailModal from '../components/recipe/RecipeDetailModal';
+
+// 再起動時のID衝突を避けるため時刻起点の連番を採用（シードIDの1〜3とは衝突しない）
+let nextRecipeId = Date.now();
+let nextShoppingId = Date.now();
 
 export default function RecipeScreen() {
   const recipeRepo = useRecipeRepository();
+  const shoppingRepo = useShoppingRepository();
   const foodRepo = useRepository();
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [foodItems, setFoodItems] = useState<FoodItem[]>([]);
+  const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleteMode, setIsDeleteMode] = useState(false);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [detailRecipe, setDetailRecipe] = useState<Recipe | null>(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -44,11 +63,76 @@ export default function RecipeScreen() {
     foodRepo.getAll().then(setFoodItems);
   }, [foodRepo]);
 
+  useEffect(() => {
+    if (shoppingRepo.subscribe) {
+      return shoppingRepo.subscribe(setShoppingItems);
+    }
+    shoppingRepo.getAll().then(setShoppingItems);
+  }, [shoppingRepo]);
+
+  const handleSave = useCallback(
+    (data: Omit<Recipe, 'id'>, id: string | null) => {
+      if (id) {
+        const updated: Recipe = { ...data, id };
+        setRecipes((prev) => prev.map((r) => (r.id === id ? updated : r)));
+        recipeRepo.update(updated);
+      } else {
+        const newRecipe: Recipe = { ...data, id: String(nextRecipeId++) };
+        setRecipes((prev) => [...prev, newRecipe]);
+        recipeRepo.add(newRecipe);
+      }
+      setEditingRecipe(null);
+    },
+    [recipeRepo],
+  );
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      setRecipes((prev) => prev.filter((r) => r.id !== id));
+      recipeRepo.delete(id);
+    },
+    [recipeRepo],
+  );
+
+  const handleEdit = useCallback((recipe: Recipe) => {
+    setEditingRecipe(recipe);
+    setIsFormVisible(true);
+  }, []);
+
+  const handleAddMissingToShopping = useCallback(
+    (recipe: Recipe) => {
+      const missing = getMissingIngredients(recipe, foodItems);
+      // 既に未チェックで存在する品目は追加しない（正規化名で重複排除）
+      const existingNames = new Set(
+        shoppingItems.filter((i) => !i.checked).map((i) => normalizeIngredientName(i.name)),
+      );
+      const toAdd = missing.filter(
+        (ingredient) => !existingNames.has(normalizeIngredientName(ingredient.name)),
+      );
+      const newItems: ShoppingItem[] = toAdd.map((ingredient) => ({
+        id: String(nextShoppingId++),
+        name: ingredient.name,
+        checked: false,
+      }));
+      setShoppingItems((prev) => [...prev, ...newItems]);
+      newItems.forEach((item) => shoppingRepo.add(item));
+      setDetailRecipe(null);
+    },
+    [foodItems, shoppingItems, shoppingRepo],
+  );
+
   const renderItem = useCallback(
     ({ item }: { item: Recipe }) => (
-      <RecipeCard recipe={item} match={matchRecipeAgainstStock(item, foodItems)} />
+      <RecipeCard
+        recipe={item}
+        match={matchRecipeAgainstStock(item, foodItems)}
+        showDeleteButton={isDeleteMode}
+        onPress={setDetailRecipe}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
     ),
-    [foodItems],
+    [foodItems, isDeleteMode, handleEdit, handleDelete],
   );
 
   if (isLoading) {
@@ -69,6 +153,30 @@ export default function RecipeScreen() {
         </View>
       </View>
 
+      {/* ツールバー */}
+      <View style={styles.toolbar}>
+        <TouchableOpacity
+          testID="btn-add-recipe"
+          style={styles.btnAdd}
+          onPress={() => {
+            setEditingRecipe(null);
+            setIsFormVisible(true);
+          }}
+        >
+          <Text style={styles.btnAddText}>＋ レシピ追加</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          testID="btn-recipe-delete-mode"
+          style={[styles.btnDelete, isDeleteMode && styles.btnDeleteActive]}
+          onPress={() => setIsDeleteMode((prev) => !prev)}
+          accessibilityState={{ selected: isDeleteMode }}
+        >
+          <Text style={[styles.btnDeleteText, isDeleteMode && styles.btnDeleteTextActive]}>
+            削除
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* レシピリスト */}
       <FlatList
         testID="recipe-list"
@@ -77,6 +185,26 @@ export default function RecipeScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={<Text style={styles.emptyText}>レシピがありません</Text>}
         renderItem={renderItem}
+      />
+
+      {/* レシピ追加・編集モーダル */}
+      <RecipeFormModal
+        visible={isFormVisible}
+        recipe={editingRecipe}
+        onSave={handleSave}
+        onClose={() => {
+          setIsFormVisible(false);
+          setEditingRecipe(null);
+        }}
+      />
+
+      {/* レシピ詳細モーダル */}
+      <RecipeDetailModal
+        visible={detailRecipe !== null}
+        recipe={detailRecipe}
+        match={detailRecipe ? matchRecipeAgainstStock(detailRecipe, foodItems) : null}
+        onAddMissingToShopping={handleAddMissingToShopping}
+        onClose={() => setDetailRecipe(null)}
       />
     </SafeAreaView>
   );
@@ -113,6 +241,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#5c7a72',
     marginTop: 2,
+  },
+  toolbar: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+    paddingTop: 4,
+    backgroundColor: '#ffffff',
+  },
+  btnAdd: {
+    flex: 1,
+    backgroundColor: '#0d8f7a',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  btnAddText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  btnDelete: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#fde8e8',
+    alignItems: 'center',
+  },
+  btnDeleteActive: {
+    backgroundColor: '#fde8e8',
+    borderColor: '#c73e3e',
+  },
+  btnDeleteText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#c73e3e',
+  },
+  btnDeleteTextActive: {
+    fontWeight: '700',
   },
   listContent: {
     padding: 16,
