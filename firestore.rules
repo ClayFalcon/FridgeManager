@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(ownerUid) {
+      return exists(/databases/$(database)/documents/users/$(ownerUid)/members/$(request.auth.uid));
+    }
+
+    function isSelfOrMember(ownerUid) {
+      return isSignedIn() && (request.auth.uid == ownerUid || isMember(ownerUid));
+    }
+
+    match /users/{ownerUid} {
+
+      match /profile {
+        allow read, write: if isSignedIn() && request.auth.uid == ownerUid;
+      }
+
+      match /members/{memberUid} {
+        allow read: if isSelfOrMember(ownerUid);
+        allow create: if isSignedIn() && request.auth.uid == memberUid;
+        allow delete: if isSignedIn() && (request.auth.uid == ownerUid || request.auth.uid == memberUid);
+        allow update: if false;
+      }
+
+      match /food_items/{itemId} {
+        allow read, write: if isSelfOrMember(ownerUid);
+      }
+
+      // 自分自身の端末プッシュトークン（オーナー本人）
+      match /pushTokens/{token} {
+        allow read: if isSelfOrMember(ownerUid);
+        allow create, update, delete: if isSignedIn() && request.auth.uid == ownerUid;
+      }
+
+      // メンバーの端末プッシュトークン
+      match /members/{memberUid}/pushTokens/{token} {
+        allow read: if isSelfOrMember(ownerUid);
+        allow create, update, delete: if isSignedIn() && request.auth.uid == memberUid && isMember(ownerUid);
+      }
+
+      // 手動通知のレート制限状態（5分クールダウン）
+      // JS側の PushNotificationService.MANUAL_NOTIFY_COOLDOWN_MS と値を一致させること
+      match /meta/manualNotify {
+        allow read: if isSelfOrMember(ownerUid);
+        allow create, update: if isSelfOrMember(ownerUid)
+          && request.resource.data.keys().hasOnly(['lastSentAt', 'lastSentByUid'])
+          && request.resource.data.lastSentAt == request.time
+          && request.resource.data.lastSentByUid == request.auth.uid
+          && (
+            !exists(/databases/$(database)/documents/users/$(ownerUid)/meta/manualNotify) ||
+            request.time > resource.data.lastSentAt + duration.value(5, 'm')
+          );
+        allow delete: if false;
+      }
+
+      // 賞味期限通知設定（正はローカルSQLite。ここは複数端末同期用のミラー）
+      match /notificationSettings/{settingId} {
+        allow read, write: if isSignedIn() && request.auth.uid == ownerUid;
+      }
+    }
+
+    match /invites/{code} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}

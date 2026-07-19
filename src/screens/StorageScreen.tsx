@@ -7,9 +7,21 @@ import {
   StyleSheet,
   SafeAreaView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { FoodItem, StorageLocation, StockLevel } from '../types/food';
 import { useRepository } from '../hooks/useRepository';
+import { useAuth } from '../context/AuthContext';
+import { useSharing } from '../context/SharingContext';
+import { sortItemsByExpiryAscending } from '../utils/expirySort';
+import { DeepLinkTarget } from '../hooks/useNotificationDeepLink';
+import {
+  getManualNotifyState,
+  sendManualNotifyToGroup,
+  ManualNotifyRateLimitedError,
+  NoRecipientsError,
+  MANUAL_NOTIFY_COOLDOWN_MS,
+} from '../services/PushNotificationService';
 import LocationTabs from '../components/storage/LocationTabs';
 import FoodItemCard from '../components/storage/FoodItemCard';
 import AddFoodModal from '../components/storage/AddFoodModal';
@@ -17,21 +29,94 @@ import EditFoodModal from '../components/storage/EditFoodModal';
 
 let nextId = 100;
 
-interface Props {
-  onOpenSettings: () => void;
+function formatCooldown(ms: number): string {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export default function StorageScreen({ onOpenSettings }: Props) {
+type ViewMode = 'tabs' | 'expirySorted';
+
+interface Props {
+  onOpenSettings: () => void;
+  deepLinkTarget?: DeepLinkTarget;
+  onDeepLinkConsumed?: () => void;
+}
+
+export default function StorageScreen({ onOpenSettings, deepLinkTarget, onDeepLinkConsumed }: Props) {
   const repo = useRepository();
+  const { user } = useAuth();
+  const { ownerUid: sharingOwnerUid } = useSharing();
 
   const [items, setItems] = useState<FoodItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState<StorageLocation>('fridge');
+  const [viewMode, setViewMode] = useState<ViewMode>('tabs');
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [isSimpleGlobal, setIsSimpleGlobal] = useState(false);
   const [simpleOverrides, setSimpleOverrides] = useState<Record<string, boolean>>({});
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [editingItem, setEditingItem] = useState<FoodItem | null>(null);
+  const [nextAllowedNotifyAt, setNextAllowedNotifyAt] = useState<Date | null>(null);
+  const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0);
+  const [isSendingNotify, setIsSendingNotify] = useState(false);
+
+  const isLinked = user !== null && !user.isAnonymous;
+  const effectiveOwnerUid = sharingOwnerUid ?? user?.uid ?? null;
+
+  useEffect(() => {
+    if (deepLinkTarget?.type === 'expirySorted') {
+      setViewMode('expirySorted');
+      onDeepLinkConsumed?.();
+    } else if (deepLinkTarget?.type === 'manualNotify') {
+      setViewMode('tabs');
+      onDeepLinkConsumed?.();
+    }
+  }, [deepLinkTarget, onDeepLinkConsumed]);
+
+  useEffect(() => {
+    if (isLinked && effectiveOwnerUid) {
+      getManualNotifyState(effectiveOwnerUid)
+        .then((state) => setNextAllowedNotifyAt(state.nextAllowedAt))
+        .catch(() => {});
+    }
+  }, [isLinked, effectiveOwnerUid]);
+
+  useEffect(() => {
+    if (!nextAllowedNotifyAt) {
+      setCooldownRemainingMs(0);
+      return;
+    }
+    const update = () => setCooldownRemainingMs(Math.max(0, nextAllowedNotifyAt.getTime() - Date.now()));
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [nextAllowedNotifyAt]);
+
+  async function handleNotifyMembers() {
+    if (!user || !effectiveOwnerUid) return;
+    setIsSendingNotify(true);
+    try {
+      await sendManualNotifyToGroup({
+        ownerUid: effectiveOwnerUid,
+        senderUid: user.uid,
+        senderDisplayName: user.displayName ?? null,
+      });
+      setNextAllowedNotifyAt(new Date(Date.now() + MANUAL_NOTIFY_COOLDOWN_MS));
+      Alert.alert('完了', '共有メンバーに通知しました');
+    } catch (e) {
+      if (e instanceof NoRecipientsError) {
+        Alert.alert('通知できません', '共有メンバーがいません');
+      } else if (e instanceof ManualNotifyRateLimitedError) {
+        setNextAllowedNotifyAt(e.nextAllowedAt);
+      } else {
+        Alert.alert('エラー', e instanceof Error ? e.message : '不明なエラー');
+      }
+    } finally {
+      setIsSendingNotify(false);
+    }
+  }
 
   useEffect(() => {
     setIsLoading(true);
@@ -48,7 +133,10 @@ export default function StorageScreen({ onOpenSettings }: Props) {
     });
   }, [repo]);
 
-  const visibleItems = items.filter((item) => item.location === selectedLocation);
+  const visibleItems =
+    viewMode === 'expirySorted'
+      ? sortItemsByExpiryAscending(items)
+      : items.filter((item) => item.location === selectedLocation);
 
   const isSimpleForItem = useCallback(
     (id: string) => {
@@ -97,6 +185,7 @@ export default function StorageScreen({ onOpenSettings }: Props) {
   function handleTabChange(location: StorageLocation) {
     setSelectedLocation(location);
     setIsDeleteMode(false);
+    setViewMode('tabs');
   }
 
   const renderItem = useCallback(
@@ -105,13 +194,14 @@ export default function StorageScreen({ onOpenSettings }: Props) {
         item={item}
         isSimple={isSimpleForItem(item.id)}
         showDeleteButton={isDeleteMode}
+        showLocationBadge={viewMode === 'expirySorted'}
         onStockChange={handleStockChange}
         onDelete={handleDelete}
         onEdit={setEditingItem}
         onToggleView={() => handleToggleView(item.id)}
       />
     ),
-    [isSimpleForItem, isDeleteMode, handleStockChange, handleDelete, handleToggleView],
+    [isSimpleForItem, isDeleteMode, viewMode, handleStockChange, handleDelete, handleToggleView],
   );
 
   if (isLoading) {
@@ -159,18 +249,55 @@ export default function StorageScreen({ onOpenSettings }: Props) {
         </TouchableOpacity>
       </View>
 
-      {/* 一括表示切替 */}
-      <View style={styles.toolbarSecondary}>
+      {/* 一括表示切替・賞味期限順表示 */}
+      <View style={[styles.toolbarSecondary, styles.toolbarSecondaryRow]}>
         <TouchableOpacity
           testID="btn-bulk-view"
-          style={styles.btnBulk}
+          style={[styles.btnBulk, styles.toolbarSecondaryItem]}
           onPress={handleBulkToggle}
         >
           <Text style={styles.btnBulkText}>
             一括: {isSimpleGlobal ? '詳細表示' : '簡易表示'}
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          testID="btn-expiry-sort-view"
+          style={[
+            styles.btnBulk,
+            styles.toolbarSecondaryItem,
+            viewMode === 'expirySorted' && styles.btnExpirySortActive,
+          ]}
+          onPress={() => setViewMode((prev) => (prev === 'expirySorted' ? 'tabs' : 'expirySorted'))}
+          accessibilityState={{ selected: viewMode === 'expirySorted' }}
+        >
+          <Text
+            style={[styles.btnBulkText, viewMode === 'expirySorted' && styles.btnExpirySortActiveText]}
+          >
+            賞味期限順{viewMode === 'expirySorted' ? '（表示中）' : ''}
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* 共有メンバーへの通知 */}
+      {isLinked && effectiveOwnerUid && (
+        <View style={styles.toolbarSecondary}>
+          <TouchableOpacity
+            testID="btn-notify-members"
+            style={[
+              styles.btnBulk,
+              (isSendingNotify || cooldownRemainingMs > 0) && styles.btnBulkDisabled,
+            ]}
+            onPress={handleNotifyMembers}
+            disabled={isSendingNotify || cooldownRemainingMs > 0}
+          >
+            <Text style={styles.btnBulkText}>
+              {cooldownRemainingMs > 0
+                ? `共有メンバーに通知する（あと${formatCooldown(cooldownRemainingMs)}）`
+                : '共有メンバーに通知する'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* 食品リスト */}
       <FlatList
@@ -289,6 +416,20 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
     backgroundColor: '#ffffff',
   },
+  toolbarSecondaryRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  toolbarSecondaryItem: {
+    flex: 1,
+  },
+  btnExpirySortActive: {
+    backgroundColor: '#0d8f7a',
+    borderColor: '#0d8f7a',
+  },
+  btnExpirySortActiveText: {
+    color: '#ffffff',
+  },
   btnBulk: {
     borderWidth: 1,
     borderStyle: 'dashed',
@@ -302,6 +443,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#1a2e2a',
+  },
+  btnBulkDisabled: {
+    opacity: 0.5,
   },
   listContent: {
     padding: 16,

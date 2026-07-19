@@ -9,13 +9,22 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Switch,
 } from 'react-native';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useSharing } from '../context/SharingContext';
+import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
 import { LocalRepository } from '../db/LocalRepository';
 import { CloudRepository } from '../db/CloudRepository';
 import { migrateToCloud } from '../services/MigrationService';
+import { getSettings, saveSettings } from '../db/NotificationSettingsStore';
+import { clampSettingsToTier } from '../utils/notificationTier';
+import { rescheduleExpiryNotifications } from '../services/ExpiryNotificationScheduler';
+import { NotificationSettings } from '../types/notification';
+import TimePickerField from '../components/storage/TimePickerField';
 import {
   generateInviteCode,
   joinWithCode,
@@ -26,6 +35,9 @@ import {
   MEMBER_LIMIT,
 } from '../services/SharingService';
 
+const MAX_OFFSET_DAYS = 7;
+const MAX_TIMES_PER_RULE = 24;
+
 interface Props {
   onBack: () => void;
   authService: AuthService;
@@ -34,6 +46,7 @@ interface Props {
 export default function SettingsScreen({ onBack, authService }: Props) {
   const { user, signInAnon } = useAuth();
   const { ownerUid, isOwner, refresh } = useSharing();
+  const repo = useRepository();
 
   const [isLinking, setIsLinking] = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -43,8 +56,10 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   const [isLeaving, setIsLeaving] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
 
   const isLinked = user !== null && !user.isAnonymous;
+  const effectiveOwnerUid = ownerUid ?? user?.uid ?? 'local';
 
   useEffect(() => {
     if (isLinked && isOwner && user) {
@@ -55,6 +70,110 @@ export default function SettingsScreen({ onBack, authService }: Props) {
         .finally(() => setIsLoadingMembers(false));
     }
   }, [isLinked, isOwner, user?.uid]);
+
+  useEffect(() => {
+    setNotificationSettings(getSettings());
+  }, []);
+
+  function persistNotificationSettings(next: NotificationSettings) {
+    const clamped = clampSettingsToTier(next);
+    setNotificationSettings(clamped);
+    saveSettings(clamped);
+    repo
+      .getAll()
+      .then((items) => rescheduleExpiryNotifications(items, clamped, effectiveOwnerUid))
+      .catch(() => {});
+    if (isLinked && user) {
+      setDoc(doc(db, 'users', user.uid, 'notificationSettings', 'expiry'), {
+        enabled: clamped.enabled,
+        isPremium: clamped.isPremium,
+        rules: clamped.rules,
+        updatedAt: serverTimestamp(),
+      }).catch(() => {});
+    }
+  }
+
+  function handleToggleNotificationsEnabled(next: boolean) {
+    if (!notificationSettings) return;
+    persistNotificationSettings({ ...notificationSettings, enabled: next });
+  }
+
+  function handleTogglePremiumDev() {
+    if (!notificationSettings) return;
+    persistNotificationSettings({ ...notificationSettings, isPremium: !notificationSettings.isPremium });
+  }
+
+  function handleFreeTimeChange(time: string) {
+    if (!notificationSettings) return;
+    persistNotificationSettings({
+      ...notificationSettings,
+      rules: [{ offsetDays: 0, times: [time] }],
+    });
+  }
+
+  function handleAddRule() {
+    if (!notificationSettings) return;
+    const lastOffset = notificationSettings.rules[notificationSettings.rules.length - 1]?.offsetDays ?? -1;
+    const nextOffset = Math.min(MAX_OFFSET_DAYS, lastOffset + 1);
+    persistNotificationSettings({
+      ...notificationSettings,
+      rules: [...notificationSettings.rules, { offsetDays: nextOffset, times: ['09:00'] }],
+    });
+  }
+
+  function handleRemoveRule(ruleIndex: number) {
+    if (!notificationSettings) return;
+    persistNotificationSettings({
+      ...notificationSettings,
+      rules: notificationSettings.rules.filter((_, i) => i !== ruleIndex),
+    });
+  }
+
+  function handleOffsetChange(ruleIndex: number, delta: number) {
+    if (!notificationSettings) return;
+    persistNotificationSettings({
+      ...notificationSettings,
+      rules: notificationSettings.rules.map((rule, i) =>
+        i === ruleIndex
+          ? { ...rule, offsetDays: Math.max(0, Math.min(MAX_OFFSET_DAYS, rule.offsetDays + delta)) }
+          : rule,
+      ),
+    });
+  }
+
+  function handleAddTime(ruleIndex: number) {
+    if (!notificationSettings) return;
+    persistNotificationSettings({
+      ...notificationSettings,
+      rules: notificationSettings.rules.map((rule, i) =>
+        i === ruleIndex && rule.times.length < MAX_TIMES_PER_RULE
+          ? { ...rule, times: [...rule.times, '09:00'] }
+          : rule,
+      ),
+    });
+  }
+
+  function handleRemoveTime(ruleIndex: number, timeIndex: number) {
+    if (!notificationSettings) return;
+    persistNotificationSettings({
+      ...notificationSettings,
+      rules: notificationSettings.rules.map((rule, i) =>
+        i === ruleIndex ? { ...rule, times: rule.times.filter((_, ti) => ti !== timeIndex) } : rule,
+      ),
+    });
+  }
+
+  function handleTimeChange(ruleIndex: number, timeIndex: number, value: string) {
+    if (!notificationSettings) return;
+    persistNotificationSettings({
+      ...notificationSettings,
+      rules: notificationSettings.rules.map((rule, i) =>
+        i === ruleIndex
+          ? { ...rule, times: rule.times.map((t, ti) => (ti === timeIndex ? value : t)) }
+          : rule,
+      ),
+    });
+  }
 
   async function handleLinkGoogle() {
     setIsLinking(true);
@@ -185,6 +304,110 @@ export default function SettingsScreen({ onBack, authService }: Props) {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* 通知設定 */}
+        {notificationSettings && (
+          <View style={styles.section}>
+            <View style={styles.notificationHeaderRow}>
+              <Text style={styles.sectionTitle}>通知設定</Text>
+              <Switch
+                testID="switch-notifications-enabled"
+                value={notificationSettings.enabled}
+                onValueChange={handleToggleNotificationsEnabled}
+              />
+            </View>
+
+            {notificationSettings.enabled && (
+              <>
+                {!notificationSettings.isPremium ? (
+                  <View style={styles.ruleRow} testID="rule-row-free">
+                    <Text style={styles.ruleLabel}>当日</Text>
+                    <TimePickerField
+                      testID="time-picker-free"
+                      value={notificationSettings.rules[0]?.times[0] ?? '09:00'}
+                      onChange={handleFreeTimeChange}
+                    />
+                  </View>
+                ) : (
+                  <>
+                    {notificationSettings.rules.map((rule, ruleIndex) => (
+                      <View style={styles.premiumRuleCard} key={ruleIndex} testID={`rule-row-${ruleIndex}`}>
+                        <View style={styles.offsetStepper}>
+                          <TouchableOpacity
+                            testID={`offset-minus-${ruleIndex}`}
+                            style={styles.stepperBtn}
+                            onPress={() => handleOffsetChange(ruleIndex, -1)}
+                          >
+                            <Text style={styles.stepperBtnText}>−</Text>
+                          </TouchableOpacity>
+                          <Text style={styles.ruleLabel}>
+                            {rule.offsetDays === 0 ? '当日' : `${rule.offsetDays}日前`}
+                          </Text>
+                          <TouchableOpacity
+                            testID={`offset-plus-${ruleIndex}`}
+                            style={styles.stepperBtn}
+                            onPress={() => handleOffsetChange(ruleIndex, 1)}
+                          >
+                            <Text style={styles.stepperBtnText}>＋</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            testID={`btn-remove-rule-${ruleIndex}`}
+                            style={styles.removeRuleBtn}
+                            onPress={() => handleRemoveRule(ruleIndex)}
+                          >
+                            <Text style={styles.removeMemberText}>ルール削除</Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {rule.times.map((time, timeIndex) => (
+                          <View style={styles.timeRow} key={timeIndex}>
+                            <TimePickerField
+                              testID={`time-picker-${ruleIndex}-${timeIndex}`}
+                              value={time}
+                              onChange={(v) => handleTimeChange(ruleIndex, timeIndex, v)}
+                            />
+                            {rule.times.length > 1 && (
+                              <TouchableOpacity
+                                testID={`btn-remove-time-${ruleIndex}-${timeIndex}`}
+                                onPress={() => handleRemoveTime(ruleIndex, timeIndex)}
+                              >
+                                <Text style={styles.removeMemberText}>削除</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        ))}
+
+                        {rule.times.length < MAX_TIMES_PER_RULE && (
+                          <TouchableOpacity
+                            testID={`btn-add-time-${ruleIndex}`}
+                            onPress={() => handleAddTime(ruleIndex)}
+                          >
+                            <Text style={styles.addLinkText}>＋ 時刻を追加</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    ))}
+
+                    <TouchableOpacity testID="btn-add-rule" onPress={handleAddRule}>
+                      <Text style={styles.addLinkText}>＋ 通知ルールを追加</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </>
+            )}
+
+            {__DEV__ && (
+              <View style={styles.devToggleRow}>
+                <Text style={styles.devToggleLabel}>（開発用）プレミアムを有効にする</Text>
+                <Switch
+                  testID="dev-toggle-premium"
+                  value={notificationSettings.isPremium}
+                  onValueChange={handleTogglePremiumDev}
+                />
+              </View>
+            )}
+          </View>
+        )}
 
         {/* オーナー向け: 招待コード生成 */}
         {isLinked && isOwner && (
@@ -444,5 +667,68 @@ const styles = StyleSheet.create({
     color: '#9ab3ac',
     textAlign: 'center',
     paddingVertical: 8,
+  },
+  notificationHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ruleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  ruleLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1a2e2a',
+  },
+  premiumRuleCard: {
+    backgroundColor: '#f6fbf9',
+    borderRadius: 10,
+    padding: 10,
+    gap: 8,
+  },
+  offsetStepper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stepperBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#e6f2ee',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0d8f7a',
+  },
+  removeRuleBtn: {
+    marginLeft: 'auto',
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  addLinkText: {
+    fontSize: 13,
+    color: '#0d8f7a',
+    fontWeight: '600',
+  },
+  devToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
+  devToggleLabel: {
+    fontSize: 12,
+    color: '#9ab3ac',
+    flex: 1,
   },
 });

@@ -179,6 +179,26 @@ describe('StorageScreen', () => {
     await element(by.id('view-toggle-1')).tap();
   });
 
+  // ── 賞味期限順表示（ローカルSQLiteのみで完結するため自動化対象） ──
+  it('賞味期限順表示に切り替えると保管場所を横断して表示される', async () => {
+    await element(by.id('btn-expiry-sort-view')).tap();
+    // 豆腐（id=4, expiryDate=2000-01-01）が全食品中もっとも賞味期限が早い
+    await expect(element(by.text('豆腐'))).toBeVisible();
+    // 通常は冷蔵庫タブでは表示されない野菜室の食品も表示される
+    await waitFor(element(by.text('レタス')))
+      .toBeVisible()
+      .whileElement(by.id('food-list'))
+      .scroll(300, 'down');
+  });
+
+  it('保管場所タブをタップすると賞味期限順表示から通常表示に戻る', async () => {
+    await element(by.id('btn-expiry-sort-view')).tap();
+    await expect(element(by.text('豆腐'))).toBeVisible();
+    await element(by.id('tab-fridge')).tap();
+    // 通常表示に戻ると冷蔵庫タブの食品のみ表示される
+    await expect(element(by.text('牛乳'))).toBeVisible();
+  });
+
   // ── 設定画面 ──────────────────────────────────────────
   // NOTE: 設定画面遷移テストは自動化から除外（手動テスト手順書: e2e/manual/settings-screen.md）
   // 原因: Firebase Auth の onAuthStateChanged が登録する内部 setTimeout が

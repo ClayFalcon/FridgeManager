@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { FoodItem, StockLevel } from '../../types/food';
+import { FoodItem, StockLevel, LOCATION_LABELS } from '../../types/food';
 import StockLevelSelector from './StockLevelSelector';
 import { getExpiryStatus } from '../../utils/expiryUtils';
 
@@ -8,6 +8,7 @@ interface Props {
   item: FoodItem;
   isSimple: boolean;
   showDeleteButton: boolean;
+  showLocationBadge?: boolean;
   onStockChange: (id: string, level: StockLevel) => void;
   onDelete: (id: string) => void;
   onEdit: (item: FoodItem) => void;
@@ -25,6 +26,7 @@ function FoodItemCard({
   item,
   isSimple,
   showDeleteButton,
+  showLocationBadge,
   onStockChange,
   onDelete,
   onEdit,
@@ -54,6 +56,11 @@ function FoodItemCard({
               <Text style={styles.icon}>{item.icon ?? '🍽️'}</Text>
             </View>
             <Text style={styles.name}>{item.name}</Text>
+            {showLocationBadge && (
+              <View style={styles.locationBadge} testID={`location-badge-${item.id}`}>
+                <Text style={styles.locationBadgeText}>{LOCATION_LABELS[item.location]}</Text>
+              </View>
+            )}
           </View>
           <View style={styles.headButtons}>
             <TouchableOpacity
@@ -179,6 +186,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a2e2a',
     flex: 1,
+  },
+  locationBadge: {
+    backgroundColor: '#eef6f3',
+    borderRadius: 6,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+  },
+  locationBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#0d8f7a',
   },
   headButtons: {
     flexDirection: 'row',
