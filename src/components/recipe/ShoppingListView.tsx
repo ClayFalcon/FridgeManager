@@ -98,6 +98,7 @@ export default function ShoppingListView({
       {/* 品目リスト */}
       <FlatList
         testID="shopping-list"
+        keyboardShouldPersistTaps="handled"
         data={items}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}

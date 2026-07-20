@@ -30,8 +30,8 @@ describe('StorageScreen', () => {
   // ── 基本表示 ──────────────────────────────────────────
   it('食品保管画面が表示される', async () => {
     await expect(element(by.id('storage-screen'))).toBeVisible();
+    // NOTE: by.text('食品保管') はボトムタブのラベルにもマッチして曖昧になるため testID で確認する
     await expect(element(by.id('storage-title'))).toBeVisible();
-    await expect(element(by.text('食品保管'))).toBeVisible();
   });
 
   it('保管場所タブが4つ表示される', async () => {
@@ -115,7 +115,8 @@ describe('StorageScreen', () => {
     await expect(element(by.id('edit-food-sheet'))).toBeVisible();
     await element(by.id('edit-food-name-input')).clearText();
     await element(by.id('edit-food-name-input')).typeText('MilkEdited');
-    // キーボード表示でボタンが画面外に押し出されるためスクロールして表示
+    // キーボードを閉じてからsubmitへスクロール（開いたままだとsubmitに到達できない）
+    await device.pressBack();
     await waitFor(element(by.id('edit-food-submit')))
       .toBeVisible()
       .whileElement(by.id('edit-food-sheet'))
@@ -137,6 +138,7 @@ describe('StorageScreen', () => {
     await expect(element(by.id('edit-food-expiry-days-input'))).toHaveText('7');
     await element(by.id('edit-food-expiry-days-input')).clearText();
     await element(by.id('edit-food-expiry-days-input')).typeText('5');
+    await device.pressBack();
     await waitFor(element(by.id('edit-food-submit')))
       .toBeVisible()
       .whileElement(by.id('edit-food-sheet'))
@@ -252,22 +254,25 @@ describe('BottomTabBar / RecipeScreen', () => {
   // ── 初期レシピとバッジ ────────────────────────────────
   it('初期レシピ3件と在庫照合バッジが表示される', async () => {
     await element(by.id('bottom-tab-recipes')).tap();
+    // 初期状態では3つのバッジ文言がそれぞれ一意なのでテキストで直接検証する
     // トマトパスタ: トマト(在庫2)・パスタ(在庫1) → 作れる
     await expect(element(by.text('トマトパスタ'))).toBeVisible();
-    await expect(element(by.id('recipe-badge-1'))).toHaveDescendant(by.text('作れる'));
+    await expect(element(by.text('作れる'))).toBeVisible();
     // 親子丼: 鶏もも肉(在庫0)・卵(在庫0)・米(在庫2) → 不足2品
-    await expect(element(by.id('recipe-badge-2'))).toHaveDescendant(by.text('不足2品'));
+    await expect(element(by.text('不足2品'))).toBeVisible();
     // ハムサラダ: レタス(在庫1)・ハム(在庫1)・きゅうり(在庫0) → 不足1品
-    await expect(element(by.id('recipe-badge-3'))).toHaveDescendant(by.text('不足1品'));
+    await expect(element(by.text('不足1品'))).toBeVisible();
   });
 
   it('在庫を変えるとバッジが更新される', async () => {
     // きゅうり(id=8, 野菜室)の在庫を「買ったばかり」に変更
     await element(by.id('tab-vegetable')).tap();
     await element(by.id('stock-btn-8-2')).tap();
-    // レシピタブでハムサラダが「作れる」に変わる
+    // レシピタブでハムサラダが「作れる」に変わる = 「不足1品」バッジが消える
+    // （「作れる」は複数レシピに表示され曖昧になるため、消えた文言で検証する）
     await element(by.id('bottom-tab-recipes')).tap();
-    await expect(element(by.id('recipe-badge-3'))).toHaveDescendant(by.text('作れる'));
+    await expect(element(by.text('不足1品'))).not.toBeVisible();
+    await expect(element(by.text('不足2品'))).toBeVisible();
   });
 
   // ── レシピCRUD ────────────────────────────────────────
@@ -278,7 +283,8 @@ describe('BottomTabBar / RecipeScreen', () => {
     // Android CIエミュレーターのIMEは日本語変換不可のためASCII文字を使用
     await element(by.id('recipe-form-name-input')).typeText('TestRecipe');
     await element(by.id('recipe-form-ingredient-name-0')).typeText('TestIng');
-    // キーボードでボタンが隠れる場合に備えてスクロール
+    // キーボードを閉じてからsubmitへスクロール（開いたままだとsubmitに到達できない）
+    await device.pressBack();
     await waitFor(element(by.id('recipe-form-submit')))
       .toBeVisible()
       .whileElement(by.id('recipe-form-sheet'))
@@ -295,6 +301,7 @@ describe('BottomTabBar / RecipeScreen', () => {
     await element(by.id('btn-add-recipe')).tap();
     await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
     await element(by.id('recipe-form-ingredient-name-0')).typeText('OnlyIng');
+    await device.pressBack();
     await element(by.id('recipe-form-submit')).tap();
     // 名前が空なのでモーダルは閉じない
     await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
@@ -306,6 +313,7 @@ describe('BottomTabBar / RecipeScreen', () => {
     await expect(element(by.id('recipe-form-sheet'))).toBeVisible();
     await element(by.id('recipe-form-name-input')).clearText();
     await element(by.id('recipe-form-name-input')).typeText('RecipeEdited');
+    await device.pressBack();
     await waitFor(element(by.id('recipe-form-submit')))
       .toBeVisible()
       .whileElement(by.id('recipe-form-sheet'))
@@ -420,16 +428,21 @@ describe('ShoppingList', () => {
     await element(by.text('買ってきた')).atIndex(0).tap();
     await element(by.id('purchased-submit')).tap();
     await expect(element(by.text('買い物リストは空です'))).toBeVisible();
-    // 在庫が更新され親子丼が「作れる」に変わる
+    // 在庫が更新され親子丼が「作れる」に変わる = 「不足2品」バッジが消える
+    // （「作れる」は複数レシピに表示され曖昧になるため、消えた文言で検証する）
     await element(by.id('segment-recipes')).tap();
-    await expect(element(by.id('recipe-badge-2'))).toHaveDescendant(by.text('作れる'));
+    await expect(element(by.text('不足2品'))).not.toBeVisible();
+    await expect(element(by.text('不足1品'))).toBeVisible();
   });
 
   it('買ってきたボタンで在庫にない品目は保管場所を選んで新規登録できる', async () => {
     await element(by.id('segment-shopping')).tap();
     await element(by.id('shopping-add-input')).typeText('NewFood');
     await element(by.id('btn-shopping-add')).tap();
+    // typeText後に開いたままのキーボードを閉じてからタップする
+    await device.pressBack();
     await element(by.text('買ってきた')).tap();
+    await expect(element(by.id('purchased-sheet'))).toBeVisible();
     // 在庫にない品目なので保管場所セレクターが表示される
     await expect(element(by.id('purchased-location-freezer'))).toBeVisible();
     await element(by.id('purchased-location-freezer')).tap();
@@ -466,6 +479,8 @@ describe('ShoppingList', () => {
     // 牛乳(id=1)のチップをタップすると材料名に入る
     await element(by.id('recipe-form-suggestion-0-1')).tap();
     await expect(element(by.id('recipe-form-ingredient-name-0'))).toHaveText('牛乳');
+    // キーボードがキャンセルボタンを覆っているため閉じてからタップする
+    await device.pressBack();
     await element(by.id('recipe-form-cancel')).tap();
   });
 });

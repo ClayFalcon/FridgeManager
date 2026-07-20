@@ -1,8 +1,76 @@
 diff --git a/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt b/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt
-index 2793164..3bcfa49 100644
+index 2793164..81940df 100644
 --- a/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt
 +++ b/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt
-@@ -50,7 +50,8 @@ class FabricUIManagerIdlingResources(
+@@ -1,5 +1,6 @@
+ package com.wix.detox.reactnative.idlingresources.uimodule.fabric
+ 
++import android.os.SystemClock
+ import android.view.Choreographer
+ import androidx.test.espresso.IdlingResource
+ import com.facebook.react.bridge.ReactContext
+@@ -15,14 +16,55 @@ class FabricUIManagerIdlingResources(
+     private val reactContext: ReactContext
+ ) : DetoxIdlingResource(), Choreographer.FrameCallback {
+ 
++    private var firstBusyTimestamp: Long = 0
++    private var isSteadyState: Boolean = false
++
+     override fun checkIdle(): Boolean {
+-        return if (getViewCommandMountItemsSize() == 0 && getMountItemsSize() == 0) {
+-            notifyIdle()
+-            true
+-        } else {
++        val mountItemsCount = getMountItemsSize()
++        val viewCommandMountItemsCount = getViewCommandMountItemsSize()
++
++        // UIManager がまだ生成されていない起動直後は「ビジー」扱いにして次フレームで再試行する
++        if (mountItemsCount < 0 || viewCommandMountItemsCount < 0) {
+             Choreographer.getInstance().postFrameCallback(this)
+-            false
++            return false
++        }
++
++        if (mountItemsCount == 0 && viewCommandMountItemsCount == 0) {
++            firstBusyTimestamp = 0
++            isSteadyState = false
++            notifyIdle()
++            return true
++        }
++
++        // 定常状態（解消されないスタック mount item）と判定済みなら、件数が増えない限り idle 扱いを続ける
++        if (isSteadyState && mountItemsCount <= 1 && viewCommandMountItemsCount == 0) {
++            notifyIdle()
++            return true
+         }
++
++        // 定常状態から件数が増えた場合はリセットして本当にビジーとして扱う
++        if (isSteadyState) {
++            isSteadyState = false
++            firstBusyTimestamp = 0
++        }
++
++        val now = SystemClock.uptimeMillis()
++        if (firstBusyTimestamp == 0L) {
++            firstBusyTimestamp = now
++        }
++
++        // mount item が1件だけキューに残留し続けるケース（upstream detox の既知事象）への耐性:
++        // 1.5秒以上 1 件のまま変化しなければ定常状態とみなし idle 扱いにする
++        if (now - firstBusyTimestamp >= BUSY_TOLERANCE_MS
++            && mountItemsCount <= 1
++            && viewCommandMountItemsCount == 0) {
++            isSteadyState = true
++            notifyIdle()
++            return true
++        }
++
++        Choreographer.getInstance().postFrameCallback(this)
++        return false
+     }
+ 
+     override fun registerIdleTransitionCallback(callback: IdlingResource.ResourceCallback?) {
+@@ -50,7 +92,8 @@ class FabricUIManagerIdlingResources(
      }
  
      private fun getMountItemsSize(): Int {
@@ -12,7 +80,7 @@ index 2793164..3bcfa49 100644
          val filedName = if (ReactNativeInfo.rnVersion().minor >= 81) {
              "mountItems"
          } else {
-@@ -60,14 +61,16 @@ class FabricUIManagerIdlingResources(
+@@ -60,14 +103,16 @@ class FabricUIManagerIdlingResources(
          return mountItems.size
      }
  
@@ -31,6 +99,14 @@ index 2793164..3bcfa49 100644
          val filedName = if (ReactNativeInfo.rnVersion().minor >= 81) {
              "viewCommandMountItems"
          } else {
+@@ -78,4 +123,7 @@ class FabricUIManagerIdlingResources(
+         return viewCommandMountItems.size
+     }
+ 
++    companion object {
++        private const val BUSY_TOLERANCE_MS = 1500L
++    }
+ }
 diff --git a/node_modules/detox/src/devices/common/drivers/android/exec/ADB.js b/node_modules/detox/src/devices/common/drivers/android/exec/ADB.js
 index 19dd621..2cef98a 100644
 --- a/node_modules/detox/src/devices/common/drivers/android/exec/ADB.js
