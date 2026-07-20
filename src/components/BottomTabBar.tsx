@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export interface TabDef {
   key: string;
@@ -14,8 +15,12 @@ interface Props {
 }
 
 export default function BottomTabBar({ tabs, activeKey, onSelect }: Props) {
+  // 3ボタンナビゲーション端末でシステムナビバーとタブバーが重なり
+  // タップがナビバーに吸われるのを防ぐ（edge-to-edge対応）
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container} testID="bottom-tab-bar">
+    <View style={[styles.container, { paddingBottom: 6 + insets.bottom }]} testID="bottom-tab-bar">
       {tabs.map((tab) => {
         const isActive = tab.key === activeKey;
         return (
@@ -42,7 +47,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: 'rgba(13, 143, 122, 0.12)',
-    paddingBottom: 6,
     paddingTop: 6,
   },
   tab: {

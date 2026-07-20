@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from './src/context/AuthContext';
 import { SharingProvider } from './src/context/SharingContext';
 import StorageScreen from './src/screens/StorageScreen';
@@ -57,10 +58,12 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <SharingProvider>
-        <AppNavigator />
-      </SharingProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <SharingProvider>
+          <AppNavigator />
+        </SharingProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
