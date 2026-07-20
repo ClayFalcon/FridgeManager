@@ -1,3 +1,36 @@
+diff --git a/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt b/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt
+index 2793164..3bcfa49 100644
+--- a/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt
++++ b/node_modules/detox/android/detox/src/full/java/com/wix/detox/reactnative/idlingresources/uimodule/fabric/FabricUIManagerIdlingResources.kt
+@@ -50,7 +50,8 @@ class FabricUIManagerIdlingResources(
+     }
+ 
+     private fun getMountItemsSize(): Int {
+-        val mountItemDispatcher = getMountItemDispatcher()
++        // UIManager がまだ生成されていない起動直後は「ビジー」扱いにして次フレームで再試行する
++        val mountItemDispatcher = getMountItemDispatcher() ?: return -1
+         val filedName = if (ReactNativeInfo.rnVersion().minor >= 81) {
+             "mountItems"
+         } else {
+@@ -60,14 +61,16 @@ class FabricUIManagerIdlingResources(
+         return mountItems.size
+     }
+ 
+-    private fun getMountItemDispatcher(): Any {
++    private fun getMountItemDispatcher(): Any? {
+         val fabricUIManager = UIManagerHelper.getUIManager(reactContext, UIManagerType.FABRIC)
++            ?: return null
+         val mountItemDispatcher = Reflect.on(fabricUIManager).field("mMountItemDispatcher").get<Any>()
+         return mountItemDispatcher
+     }
+ 
+     private fun getViewCommandMountItemsSize(): Int {
+-        val mountItemDispatcher = getMountItemDispatcher()
++        // UIManager がまだ生成されていない起動直後は「ビジー」扱いにして次フレームで再試行する
++        val mountItemDispatcher = getMountItemDispatcher() ?: return -1
+         val filedName = if (ReactNativeInfo.rnVersion().minor >= 81) {
+             "viewCommandMountItems"
+         } else {
 diff --git a/node_modules/detox/src/devices/common/drivers/android/exec/ADB.js b/node_modules/detox/src/devices/common/drivers/android/exec/ADB.js
 index 19dd621..2cef98a 100644
 --- a/node_modules/detox/src/devices/common/drivers/android/exec/ADB.js
