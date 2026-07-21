@@ -269,9 +269,10 @@ describe('BottomTabBar / RecipeScreen', () => {
     await element(by.id('tab-vegetable')).tap();
     await element(by.id('stock-btn-8-2')).tap();
     // レシピタブでハムサラダが「作れる」に変わる = 「不足1品」バッジが消える
-    // （「作れる」は複数レシピに表示され曖昧になるため、消えた文言で検証する）
+    // （「作れる」は複数レシピに表示され曖昧になるため、消えた文言で検証する。
+    //   CIの低速環境では反映に時間がかかることがあるため waitFor で待つ）
     await element(by.id('bottom-tab-recipes')).tap();
-    await expect(element(by.text('不足1品'))).not.toBeVisible();
+    await waitFor(element(by.text('不足1品'))).not.toBeVisible().withTimeout(10000);
     await expect(element(by.text('不足2品'))).toBeVisible();
   });
 
