@@ -1,30 +1,51 @@
 # PROGRESS
 
-最終更新: 2026-07-19
+最終更新: 2026-07-21
 
 ## 現在の状態
 
-レシピタブ + 買い物リスト + ボトムタブバーの実装が完了（ローカルコミット済み・未push）。
+**Issue #11（プッシュ通知）+ レシピタブ + 買い物リスト + 賞味期限目安日数の実装が完了し、push済み・CI（Unit Tests / E2E Tests）ともにグリーン。**
+
 - ボトムタブバー（自前実装、食品保管/レシピ。将来 #15 履歴タブを配列1行で追加可能）
-- レシピCRUD + 在庫照合（作れる/不足n品バッジ、詳細で材料別の在庫状況）
-- 買い物リスト（不足材料のワンタップ追加・手動追加・チェック・一括削除）
-- データは食材と同じ2層構成（ローカルSQLite / Googleリンク時Firestore共有）。Googleリンク時の移行も対応
+- レシピCRUD + 在庫照合（作れる/不足n品バッジ、詳細で材料別の在庫状況、材料名サジェスト入力）
+- 買い物リスト（不足材料のワンタップ追加・手動追加・チェック・一括削除・「買ってきた」で在庫反映）
+- 食材の賞味期限目安日数（「買ってきた」時の初期値=今日+日数、未設定は翌日）
+- プッシュ通知（他メンバー手動通知・賞味期限ローカル通知・通知タップ遷移）。Cloud Functions/Blaze不使用
+- データは食材と同じ2層構成（ローカルSQLite / Googleリンク時Firestore共有）
 - 設定はタブ化せず⚙️ボタン遷移のまま（ユーザー方針: 今後そこに項目を充実させる）
 
-その前のセッションで Issue #11（プッシュ通知）も実装完了・コミット済み（未push）。
-Cloud Functions/Blazeは不使用（Expo Push直接呼び出し + ローカル通知 + Firestoreルールでレート制限）。
-
-`npm run test:unit` は全102件成功。Detox E2E はレシピ・買い物リスト関連を14件追加（CIで実行）。
+Jest 124件・Detox E2E 42件、すべてCIで成功。
 
 ## 次にやること
 
-1. 未pushコミット群（#11プッシュ通知 + レシピ機能5コミット）をpushしてCI（unit/e2e）の成功を確認
-2. プッシュ通知のユーザー側手動セットアップ:
+1. プッシュ通知のユーザー側手動セットアップ:
    - `eas init` で EAS プロジェクトを作成し `app.json` の `extra.eas.projectId` を埋める
    - `firebase init firestore`（または `firebase.json`/`.firebaserc` を手動作成）→ `firebase deploy --only firestore:rules`
-3. Android実機でプッシュ通知の動作確認（`e2e/manual/notifications.md`）→ 確認後 Issue #11 をクローズ
-4. レシピ機能をエミュレータで動作確認（タブ切替・バッジ・CRUD・買い物リスト）
-5. 残タスク: Issue #12（設定画面の項目充実: ステータスモード切替等）、#13（テーマカラー）、#15（履歴タブ）
+2. Android実機でプッシュ通知の動作確認（`e2e/manual/notifications.md`）→ 確認後 Issue #11 をクローズ
+3. 残タスク: Issue #12（設定画面の項目充実: ステータスモード切替等）、#13（テーマカラー）、#15（履歴タブ）
+
+## CI（E2E）が4月以降ずっと赤だった原因と対策（2026-07-21 解決）
+
+4月13日を最後にE2Eが通らなくなっていたのは、**独立した複数の問題の積み重なり**だった:
+
+1. **CIランナーのライブラリ不足**: `ubuntu-latest` イメージ更新で `libpulse0`/`libxkbfile1` 等が
+   同梱されなくなりエミュレータ(qemu)が起動不能 → `e2e.yml` で `apt-get install` する
+2. **`.env` がCIに存在しない（真因・4/29から潜在）**: `Google.useIdTokenAuthRequest` は
+   `androidClientId` が undefined だとレンダー時に throw し、**アプリが1pxも描画されず**
+   Detoxのready待ちがタイムアウト。`.env` はgitignore対象なのでローカルでは気づけなかった。
+   → `FirebaseAuthService.ts` でダミーclientIdを渡してフックを成立させ、実操作は既存ガードで弾く
+3. **ボトムタブバーがナビバーと重なる**: 3ボタンナビ端末（CIのPixel 5 API 33）で「レシピ」タブの
+   タップがリセントボタンに吸われていた → `SafeAreaProvider` + `useSafeAreaInsets` で下部インセット
+4. **テストコード自体の不備**: 存在しない `toHaveDescendant`、タブ追加による文言の曖昧マッチ、
+   モーダル縦伸びでキーボードがsubmitを覆う、野菜室3番目のきゅうりの在庫ボタンがCI画面下端で
+   タップ不発 → whileElementスクロール等で対処
+5. **Detox本体のバグ2件**（patch-package）: Fabric UIManager未生成時のnullクラッシュ、
+   スタックmount itemでのアイドル判定無限待ち → `FabricUIManagerIdlingResources.kt` にパッチ
+
+**教訓**: ローカルとCIの差分は「.envの有無」と「ナビゲーションモード（3ボタン vs ジェスチャー）」。
+ローカル検証時は `mv .env .env.bak` でCI相当ビルドを作り、`adb shell cmd overlay enable
+com.android.internal.systemui.navbar.threebutton` で3ボタンナビに切り替えると再現できる。
+失敗時は `detox test ... --record-logs failing --take-screenshots failing` でアーティファクト取得。
 
 ## 判明した重要事項
 
