@@ -267,12 +267,18 @@ describe('BottomTabBar / RecipeScreen', () => {
   it('在庫を変えるとバッジが更新される', async () => {
     // きゅうり(id=8, 野菜室)の在庫を「買ったばかり」に変更
     await element(by.id('tab-vegetable')).tap();
+    // きゅうりは野菜室の3番目でCIの画面では下端に来ることがあるため、
+    // 在庫ボタンが確実にタップできるよう食材カードを画面内へスクロールする
+    await waitFor(element(by.id('stock-btn-8-2')))
+      .toBeVisible()
+      .whileElement(by.id('food-list'))
+      .scroll(250, 'down');
     await element(by.id('stock-btn-8-2')).tap();
     // レシピタブでハムサラダが「作れる」に変わる = 「不足1品」バッジが消える
     // （「作れる」は複数レシピに表示され曖昧になるため、消えた文言で検証する。
     //   CIの低速環境では反映に時間がかかることがあるため waitFor で待つ）
     await element(by.id('bottom-tab-recipes')).tap();
-    await waitFor(element(by.text('不足1品'))).not.toBeVisible().withTimeout(10000);
+    await waitFor(element(by.text('不足1品'))).not.toBeVisible().withTimeout(15000);
     await expect(element(by.text('不足2品'))).toBeVisible();
   });
 
