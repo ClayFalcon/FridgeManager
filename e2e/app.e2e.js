@@ -491,3 +491,36 @@ describe('ShoppingList', () => {
     await element(by.id('recipe-form-cancel')).tap();
   });
 });
+
+describe('設定: 在庫ステータス表示モード', () => {
+  beforeAll(async () => {
+    await device.launchApp();
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
+  });
+
+  beforeEach(async () => {
+    await device.launchApp({ delete: true });
+    await device.setURLBlacklist(FIREBASE_URL_BLACKLIST);
+    await waitFor(element(by.id('btn-add-food'))).toBeVisible().withTimeout(10000);
+  });
+
+  it('デフォルトは3段階で在庫ボタンが3つ表示される', async () => {
+    // 牛乳(id=1)に3段階のボタン（全くない/ちょっとある/買ったばかり）が全て存在する
+    await expect(element(by.id('stock-btn-1-0'))).toBeVisible();
+    await expect(element(by.id('stock-btn-1-1'))).toBeVisible();
+    await expect(element(by.id('stock-btn-1-2'))).toBeVisible();
+  });
+
+  it('2段階に切り替えると在庫ボタンが「ない」「ある」の2つになる', async () => {
+    // 設定画面へ遷移して2段階に切替
+    await element(by.id('btn-settings')).tap();
+    await waitFor(element(by.id('status-mode-2step'))).toBeVisible().withTimeout(10000);
+    await element(by.id('status-mode-2step')).tap();
+    await element(by.id('btn-back')).tap();
+    // 食品保管画面に戻り、ちょっとある(1)ボタンが消え、ない(0)/ある(2)のみになる
+    // （「ある」「ない」の文言は全食材カードに出て曖昧になるため testID で検証する）
+    await waitFor(element(by.id('stock-btn-1-1'))).not.toBeVisible().withTimeout(10000);
+    await expect(element(by.id('stock-btn-1-0'))).toBeVisible();
+    await expect(element(by.id('stock-btn-1-2'))).toBeVisible();
+  });
+});

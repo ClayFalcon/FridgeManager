@@ -15,6 +15,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useSharing } from '../context/SharingContext';
+import { useAppSettings } from '../context/AppSettingsContext';
 import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
 import { LocalRepository } from '../db/LocalRepository';
@@ -50,6 +51,7 @@ interface Props {
 export default function SettingsScreen({ onBack, authService }: Props) {
   const { user, signInAnon } = useAuth();
   const { ownerUid, isOwner, refresh } = useSharing();
+  const { statusMode, setStatusMode } = useAppSettings();
   const repo = useRepository();
 
   const [isLinking, setIsLinking] = useState(false);
@@ -284,6 +286,38 @@ export default function SettingsScreen({ onBack, authService }: Props) {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* 在庫ステータス表示 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>在庫ステータス表示</Text>
+          <View style={styles.segmentRow}>
+            <TouchableOpacity
+              testID="status-mode-3step"
+              style={[styles.segment, statusMode === '3step' && styles.segmentSelected]}
+              onPress={() => setStatusMode('3step')}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: statusMode === '3step' }}
+            >
+              <Text style={[styles.segmentLabel, statusMode === '3step' && styles.segmentLabelSelected]}>
+                3段階
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="status-mode-2step"
+              style={[styles.segment, statusMode === '2step' && styles.segmentSelected]}
+              onPress={() => setStatusMode('2step')}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: statusMode === '2step' }}
+            >
+              <Text style={[styles.segmentLabel, statusMode === '2step' && styles.segmentLabelSelected]}>
+                2段階
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.sectionHint}>
+            在庫データは変わりません。表示の細かさ（3段階「買ったばかり/ちょっとある/全くない」 ↔ 2段階「ある/ない」）だけが切り替わります。
+          </Text>
+        </View>
+
         {/* Googleアカウントリンク */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>データ共有</Text>
@@ -578,6 +612,33 @@ const styles = StyleSheet.create({
     color: '#5c7a72',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: '#9ab3ac',
+    lineHeight: 17,
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  segment: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#eef6f3',
+  },
+  segmentSelected: {
+    backgroundColor: '#0d8f7a',
+  },
+  segmentLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5c7a72',
+  },
+  segmentLabelSelected: {
+    color: '#ffffff',
   },
   linkBtn: {
     backgroundColor: '#0d8f7a',

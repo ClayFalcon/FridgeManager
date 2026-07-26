@@ -9,6 +9,9 @@ export const STOCK_LABELS: Record<StockLevel, string> = {
   2: '買ったばかり',
 };
 
+/** 在庫ステータスの表示モード（2段階「ある/ない」 or 3段階） */
+export type StatusMode = '2step' | '3step';
+
 export const LOCATION_LABELS: Record<StorageLocation, string> = {
   fridge: '冷蔵庫',
   vegetable: '野菜室',

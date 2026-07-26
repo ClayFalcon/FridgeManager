@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import { StockLevel, STOCK_LABELS } from '../../types/food';
+import { StockLevel } from '../../types/food';
+import { useAppSettings } from '../../context/AppSettingsContext';
+import { stepButtons, isButtonActive } from '../../utils/stockDisplay';
 
 interface Props {
   itemId: string;
   level: StockLevel;
   onChange: (level: StockLevel) => void;
 }
-
-const LEVELS: StockLevel[] = [0, 1, 2];
 
 const LEVEL_COLORS: Record<StockLevel, { bg: string; text: string }> = {
   0: { bg: '#f0f0f0', text: '#666666' },
@@ -17,24 +17,27 @@ const LEVEL_COLORS: Record<StockLevel, { bg: string; text: string }> = {
 };
 
 export default function StockLevelSelector({ itemId, level, onChange }: Props) {
+  const { statusMode } = useAppSettings();
+  const buttons = stepButtons(statusMode);
+
   return (
     <View style={styles.container} testID={`stock-selector-${itemId}`}>
-      {LEVELS.map((l) => {
-        const isSelected = l === level;
-        const colors = LEVEL_COLORS[l];
+      {buttons.map((btn) => {
+        const isSelected = isButtonActive(statusMode, btn.level, level);
+        const colors = LEVEL_COLORS[btn.level];
         return (
           <TouchableOpacity
-            key={l}
-            testID={`stock-btn-${itemId}-${l}`}
+            key={btn.level}
+            testID={`stock-btn-${itemId}-${btn.level}`}
             style={[
               styles.btn,
               { backgroundColor: isSelected ? colors.bg : '#f5f5f5' },
               isSelected && styles.btnSelected,
             ]}
-            onPress={() => onChange(l)}
+            onPress={() => onChange(btn.level)}
             accessibilityRole="button"
             accessibilityState={{ selected: isSelected }}
-            accessibilityLabel={STOCK_LABELS[l]}
+            accessibilityLabel={btn.label}
           >
             <Text
               style={[
@@ -43,7 +46,7 @@ export default function StockLevelSelector({ itemId, level, onChange }: Props) {
                 isSelected && styles.labelSelected,
               ]}
             >
-              {STOCK_LABELS[l]}
+              {btn.label}
             </Text>
           </TouchableOpacity>
         );
