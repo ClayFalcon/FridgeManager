@@ -72,6 +72,17 @@ service cloud.firestore {
       match /notificationSettings/{settingId} {
         allow read, write: if isSignedIn() && request.auth.uid == ownerUid;
       }
+
+      // 在庫変更履歴（共有グループで共有、通知イベントごと）
+      match /history/{entryId} {
+        allow read, create: if isSelfOrMember(ownerUid);
+        allow update, delete: if false;
+      }
+
+      // 前回通知時点の在庫スナップショット（履歴の差分計算用）
+      match /meta/stockSnapshot {
+        allow read, write: if isSelfOrMember(ownerUid);
+      }
     }
 
     match /invites/{code} {

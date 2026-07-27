@@ -14,8 +14,13 @@ jest.mock('../services/SharingService', () => ({
   getMembers: jest.fn(),
 }));
 
+jest.mock('../services/HistoryService', () => ({
+  recordManualNotifyHistory: jest.fn().mockResolvedValue(undefined),
+}));
+
 import { getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { getMembers } from '../services/SharingService';
+import { recordManualNotifyHistory } from '../services/HistoryService';
 import {
   getManualNotifyState,
   collectGroupPushTokens,
@@ -148,6 +153,8 @@ describe('sendManualNotifyToGroup', () => {
 
     await expect(promise).rejects.toThrow(ManualNotifyRateLimitedError);
     expect(global.fetch).not.toHaveBeenCalled();
+    // レート制限で弾かれた場合は履歴も記録しない
+    expect(recordManualNotifyHistory).not.toHaveBeenCalled();
   });
 
   it('正常系: レート制限書き込み成功後にExpo Push APIへ送信する', async () => {
@@ -176,5 +183,7 @@ describe('sendManualNotifyToGroup', () => {
         body: 'たろうさんが在庫状況を最新化しました！',
       }),
     );
+    // レート制限を通過したので在庫変更履歴も記録される
+    expect(recordManualNotifyHistory).toHaveBeenCalledWith('owner-uid', 'owner-uid', 'たろう');
   });
 });

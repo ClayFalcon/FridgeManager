@@ -1,6 +1,7 @@
 import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getMembers } from './SharingService';
+import { recordManualNotifyHistory } from './HistoryService';
 import { formatManualNotifyMessage } from '../utils/notificationMessages';
 
 /** Firestoreルール側の users/{ownerUid}/meta/manualNotify の duration.value(5,'m') と値を一致させること */
@@ -97,6 +98,13 @@ export async function sendManualNotifyToGroup(params: {
   } catch {
     const state = await getManualNotifyState(ownerUid);
     throw new ManualNotifyRateLimitedError(state.nextAllowedAt ?? new Date());
+  }
+
+  // レート制限を通過し実際に送信するときだけ在庫変更履歴を記録する（ベストエフォート）
+  try {
+    await recordManualNotifyHistory(ownerUid, senderUid, senderDisplayName);
+  } catch {
+    // 履歴記録の失敗は通知送信を止めない
   }
 
   const { title, body } = formatManualNotifyMessage(senderDisplayName);

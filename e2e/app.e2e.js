@@ -251,6 +251,18 @@ describe('BottomTabBar / RecipeScreen', () => {
     await expect(element(by.id('storage-screen'))).toBeVisible();
   });
 
+  // ── 履歴タブ ──────────────────────────────────────────
+  it('履歴タブに切り替えられ、未連携時は案内が表示される', async () => {
+    await expect(element(by.id('bottom-tab-history'))).toBeVisible();
+    await element(by.id('bottom-tab-history')).tap();
+    await expect(element(by.id('history-screen'))).toBeVisible();
+    // Google未連携（匿名/ローカル）状態では共有グループ利用の案内が出る
+    await expect(element(by.id('history-guide'))).toBeVisible();
+    // 食品保管タブに戻れる
+    await element(by.id('bottom-tab-storage')).tap();
+    await expect(element(by.id('storage-screen'))).toBeVisible();
+  });
+
   // ── 初期レシピとバッジ ────────────────────────────────
   it('初期レシピ3件と在庫照合バッジが表示される', async () => {
     await element(by.id('bottom-tab-recipes')).tap();
