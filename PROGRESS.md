@@ -1,26 +1,46 @@
 # PROGRESS
 
-最終更新: 2026-07-26
+最終更新: 2026-09-12
 
 ## 現在の状態
 
-**Issue #15（履歴タブ）まで完了し、push済み・CI（Unit Tests / E2E Tests）ともにグリーン。**
+**リリース準備フェーズ。通知機能を一括無効化し、Auth永続化を修正。CI（Unit/E2E）グリーン。**
 
-- 履歴タブ（通知ごとの在庫レベル変更をスナップショット差分方式で記録・表示。下部バー3タブ目。未連携は案内表示）
-- 在庫ステータスの表示モード切替（3段階↔2段階「ある/ない」。端末ローカル保存、表示グルーピングのみ）
-- プッシュ通知（他メンバー手動通知・賞味期限ローカル通知・通知タップ遷移）。Cloud Functions/Blaze不使用
-- レシピCRUD + 在庫照合（作れる/不足n品バッジ、材料別在庫状況、材料名サジェスト入力）
-- 買い物リスト（不足材料のワンタップ追加・手動追加・チェック・一括削除・「買ってきた」で在庫反映）
-- 食材の賞味期限目安日数（「買ってきた」時の初期値=今日+日数、未設定は翌日）
-- ボトムタブバー（自前実装、食品保管/レシピ/履歴の3タブ）
+- **通知機能はフィーチャーフラグで無効化中**（`src/config/features.ts` の `NOTIFICATIONS_ENABLED=false`）。
+  プッシュ通知はEAS設定+実機2台のテストが必要でリリースのネックになるため。true に戻すだけで全機能復活。
+  無効化対象: 他メンバー通知ボタン・トークン登録・賞味期限ローカル通知・通知設定セクション・通知タップ遷移・履歴タブ
+- **Auth永続化を AsyncStorage に変更済み**（`src/config/firebase.ts`）。再起動後もログイン保持=共有機能が本番運用可能に。
+  懸念だったDetox再ハングは発生せず（E2E全44件成功）
+- 実装済み機能: レシピCRUD+在庫照合、買い物リスト、賞味期限目安日数、在庫ステータス2/3段階切替、
+  履歴タブ（通知有効時のみ）、Google連携による共有
 - データは食材と同じ2層構成（ローカルSQLite / Googleリンク時Firestore共有）
 
-Jest 143件・Detox E2E 44件、すべてCIで成功。
+Jest 144件・Detox E2E 44件、すべてCIで成功。
 
-## 次にやること
+## 次にやること（リリースまで）
 
-1. プッシュ通知の実機テスト（Issue #16、実機2台待ち）: `eas init` + `firebase deploy --only firestore:rules` の手動セットアップ後、`e2e/manual/notifications.md` で確認 → 確認後 Issue #11 をクローズ
-2. 残Issue: #13（テーマカラーカスタマイズ）、#16（プッシュ通知実機テスト）
+**A. 必須ブロッカー（外部作業）**
+1. リリース用キーストア生成 + `android/app/build.gradle` の release署名を差し替え（現状debug.keystore使用）
+2. Firestoreルールのデプロイ: `firebase init firestore` → `firebase deploy --only firestore:rules`（未反映＝DB無防備の恐れ）
+3. プライバシーポリシー用意 + Play Console 登録
+
+**B. 共有機能を有効にして出す場合**
+4. release証明書のSHA-1をFirebaseに登録 + release用Android OAuth Client ID取得（現在の.envはdebug証明書向け）
+
+**C. Play Store提出物**
+5. ストア掲載情報・スクショ・データセーフティ申告・AABビルド（`./gradlew bundleRelease`）
+
+**残Issue**: #13（テーマカラー）、#16（プッシュ通知実機テスト＝通知フラグをtrueに戻すのは実機2台が揃ってから）
+
+## 判明した重要事項
+
+- **Auth永続化（2026-09-12変更）**: `firebase.ts` は `getReactNativePersistence(AsyncStorage)` を使用。
+  `getReactNativePersistence` は `firebase/auth` のRNビルド(dist/rn)にのみ存在し、Nodeでは undefined だが
+  Metroがreact-native条件で解決するため実行時に利用可能。型は名前空間import経由で取得（非RNビルドの型に無いため）。
+  → 旧「inMemoryPersistenceで再起動リセット」の記述は無効。
+- **設定画面のDetox自動化はCI（API33）では不安定**（`onAuthStateChanged` の setTimeout がアイドルをブロック）。
+  ローカルAPI36では通るがCIでは落ちるので設定画面遷移E2Eはpushしない。手動TC+ロジック単体テストで担保。
+- ステータスモード等アプリ全体の表示設定は `AppSettingsContext` + `AppSettingsStore`（SQLite）で配布・永続化。
 
 ## 判明した重要事項（2026-07-26 追記）
 
