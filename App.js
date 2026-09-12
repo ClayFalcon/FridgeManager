@@ -13,11 +13,13 @@ import { useFirebaseAuthService } from './src/services/FirebaseAuthService';
 import { useNotificationDeepLink } from './src/hooks/useNotificationDeepLink';
 import { useExpiryNotificationScheduler } from './src/hooks/useExpiryNotificationScheduler';
 import { useRegisterPushToken } from './src/hooks/useRegisterPushToken';
+import { NOTIFICATIONS_ENABLED } from './src/config/features';
 
+// 履歴タブは通知実行時にのみ記録されるため、通知機能が無効な間はタブ自体を出さない
 const TABS = [
   { key: 'storage', label: '食品保管', icon: '🧊' },
   { key: 'recipes', label: 'レシピ', icon: '🍳' },
-  { key: 'history', label: '履歴', icon: '🕑' },
+  ...(NOTIFICATIONS_ENABLED ? [{ key: 'history', label: '履歴', icon: '🕑' }] : []),
 ];
 
 function AppNavigator() {
@@ -62,7 +64,7 @@ function AppNavigator() {
         />
       )}
       {activeTab === 'recipes' && <RecipeScreen />}
-      {activeTab === 'history' && <HistoryScreen />}
+      {NOTIFICATIONS_ENABLED && activeTab === 'history' && <HistoryScreen />}
       <BottomTabBar tabs={TABS} activeKey={activeTab} onSelect={setActiveTab} />
     </View>
   );

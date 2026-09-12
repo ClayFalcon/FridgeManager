@@ -28,6 +28,7 @@ import { migrateToCloud } from '../services/MigrationService';
 import { getSettings, saveSettings } from '../db/NotificationSettingsStore';
 import { clampSettingsToTier } from '../utils/notificationTier';
 import { rescheduleExpiryNotifications } from '../services/ExpiryNotificationScheduler';
+import { NOTIFICATIONS_ENABLED } from '../config/features';
 import { NotificationSettings } from '../types/notification';
 import TimePickerField from '../components/storage/TimePickerField';
 import {
@@ -344,7 +345,7 @@ export default function SettingsScreen({ onBack, authService }: Props) {
         </View>
 
         {/* 通知設定 */}
-        {notificationSettings && (
+        {NOTIFICATIONS_ENABLED && notificationSettings && (
           <View style={styles.section}>
             <View style={styles.notificationHeaderRow}>
               <Text style={styles.sectionTitle}>通知設定</Text>

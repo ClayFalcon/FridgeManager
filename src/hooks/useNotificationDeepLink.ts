@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import * as Notifications from 'expo-notifications';
+import { NOTIFICATIONS_ENABLED } from '../config/features';
 
 export type DeepLinkTarget = { type: 'expirySorted' } | { type: 'manualNotify' } | null;
 
@@ -18,6 +19,8 @@ export function useNotificationDeepLink(): { pendingTarget: DeepLinkTarget; cons
   const checkedColdStart = useRef(false);
 
   useEffect(() => {
+    if (!NOTIFICATIONS_ENABLED) return; // 通知機能が無効な間は通知タップ遷移を処理しない
+
     if (!checkedColdStart.current) {
       checkedColdStart.current = true;
       Notifications.getLastNotificationResponseAsync()

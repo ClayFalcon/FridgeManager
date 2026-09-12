@@ -3,6 +3,10 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(),
 }));
 
+// 通知タップ遷移のロジックそのものを検証するため、このテストではフラグを有効にする
+// （リリース時は features.ts で無効化。再有効化時にロジックが壊れていないことをここで担保）
+jest.mock('../config/features', () => ({ NOTIFICATIONS_ENABLED: true }));
+
 import * as Notifications from 'expo-notifications';
 import { renderHook, waitFor, act } from '@testing-library/react-native';
 import { useNotificationDeepLink } from '../hooks/useNotificationDeepLink';

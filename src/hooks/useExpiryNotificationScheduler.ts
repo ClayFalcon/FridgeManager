@@ -6,6 +6,7 @@ import { useSharing } from '../context/SharingContext';
 import { getSettings } from '../db/NotificationSettingsStore';
 import { rescheduleExpiryNotifications } from '../services/ExpiryNotificationScheduler';
 import { FoodItem } from '../types/food';
+import { NOTIFICATIONS_ENABLED } from '../config/features';
 
 const DEBOUNCE_MS = 500;
 
@@ -19,6 +20,8 @@ export function useExpiryNotificationScheduler(): void {
   const effectiveOwnerUid = ownerUid ?? user?.uid ?? 'local';
 
   useEffect(() => {
+    if (!NOTIFICATIONS_ENABLED) return; // 通知機能が無効な間はローカル通知を予約しない
+
     const scheduleDebounced = (items: FoodItem[]) => {
       itemsRef.current = items;
       if (debounceRef.current) clearTimeout(debounceRef.current);

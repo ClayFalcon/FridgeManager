@@ -22,6 +22,7 @@ import {
   NoRecipientsError,
   MANUAL_NOTIFY_COOLDOWN_MS,
 } from '../services/PushNotificationService';
+import { NOTIFICATIONS_ENABLED } from '../config/features';
 import LocationTabs from '../components/storage/LocationTabs';
 import FoodItemCard from '../components/storage/FoodItemCard';
 import AddFoodModal from '../components/storage/AddFoodModal';
@@ -76,6 +77,7 @@ export default function StorageScreen({ onOpenSettings, deepLinkTarget, onDeepLi
   }, [deepLinkTarget, onDeepLinkConsumed]);
 
   useEffect(() => {
+    if (!NOTIFICATIONS_ENABLED) return;
     if (isLinked && effectiveOwnerUid) {
       getManualNotifyState(effectiveOwnerUid)
         .then((state) => setNextAllowedNotifyAt(state.nextAllowedAt))
@@ -279,7 +281,7 @@ export default function StorageScreen({ onOpenSettings, deepLinkTarget, onDeepLi
       </View>
 
       {/* 共有メンバーへの通知 */}
-      {isLinked && effectiveOwnerUid && (
+      {NOTIFICATIONS_ENABLED && isLinked && effectiveOwnerUid && (
         <View style={styles.toolbarSecondary}>
           <TouchableOpacity
             testID="btn-notify-members"

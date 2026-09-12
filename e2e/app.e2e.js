@@ -252,15 +252,13 @@ describe('BottomTabBar / RecipeScreen', () => {
   });
 
   // ── 履歴タブ ──────────────────────────────────────────
-  it('履歴タブに切り替えられ、未連携時は案内が表示される', async () => {
-    await expect(element(by.id('bottom-tab-history'))).toBeVisible();
-    await element(by.id('bottom-tab-history')).tap();
-    await expect(element(by.id('history-screen'))).toBeVisible();
-    // Google未連携（匿名/ローカル）状態では共有グループ利用の案内が出る
-    await expect(element(by.id('history-guide'))).toBeVisible();
-    // 食品保管タブに戻れる
-    await element(by.id('bottom-tab-storage')).tap();
-    await expect(element(by.id('storage-screen'))).toBeVisible();
+  // NOTE: 通知機能は NOTIFICATIONS_ENABLED=false（src/config/features.ts）で無効化中のため、
+  //       履歴タブは下部バーに表示されない。フラグを true に戻したらこのテストを
+  //       「履歴タブに切り替えられ、未連携案内が表示される」検証に戻すこと。
+  it('通知無効時は履歴タブが下部バーに表示されない', async () => {
+    await expect(element(by.id('bottom-tab-storage'))).toBeVisible();
+    await expect(element(by.id('bottom-tab-recipes'))).toBeVisible();
+    await expect(element(by.id('bottom-tab-history'))).not.toBeVisible();
   });
 
   // ── 初期レシピとバッジ ────────────────────────────────
