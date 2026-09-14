@@ -1,10 +1,10 @@
 # PROGRESS
 
-最終更新: 2026-09-12
+最終更新: 2026-09-14
 
 ## 現在の状態
 
-**リリース準備フェーズ。通知機能を一括無効化し、Auth永続化を修正。CI（Unit/E2E）グリーン。**
+**リリース準備フェーズ。通知無効化・Auth永続化に加え、リリース署名の仕組みとFirestoreデプロイ設定・手順書を整備。CI（Unit/E2E）グリーン。**
 
 - **通知機能はフィーチャーフラグで無効化中**（`src/config/features.ts` の `NOTIFICATIONS_ENABLED=false`）。
   プッシュ通知はEAS設定+実機2台のテストが必要でリリースのネックになるため。true に戻すだけで全機能復活。
@@ -19,16 +19,14 @@ Jest 144件・Detox E2E 44件、すべてCIで成功。
 
 ## 次にやること（リリースまで）
 
-**A. 必須ブロッカー（外部作業）**
-1. リリース用キーストア生成 + `android/app/build.gradle` の release署名を差し替え（現状debug.keystore使用）
-2. Firestoreルールのデプロイ: `firebase init firestore` → `firebase deploy --only firestore:rules`（未反映＝DB無防備の恐れ）
-3. プライバシーポリシー用意 + Play Console 登録
-
-**B. 共有機能を有効にして出す場合**
-4. release証明書のSHA-1をFirebaseに登録 + release用Android OAuth Client ID取得（現在の.envはdebug証明書向け）
-
-**C. Play Store提出物**
-5. ストア掲載情報・スクショ・データセーフティ申告・AABビルド（`./gradlew bundleRelease`）
+**すべて `RELEASE.md` に詳細手順あり。以下は手動（ユーザー）作業。**
+1. リリース用キーストア生成（`keytool`）+ `android/keystore.properties` 作成
+   （コード側は対応済み: build.gradleがkeystore.propertiesから署名を読む。無ければdebugにフォールバック）
+2. Firestoreルールのデプロイ: `firebase login` → `firebase deploy --only firestore:rules`
+   （コード側は対応済み: firebase.json/.firebaserc 作成済み）
+3. release証明書のSHA-1をFirebaseに登録 + release用Android OAuth Client ID確認（共有機能を出すため）
+4. プライバシーポリシー用意 + Play Console 登録
+5. AABビルド（`cd android && ./gradlew.bat bundleRelease`）+ Play Console 提出（内部テスト推奨）
 
 **残Issue**: #13（テーマカラー）、#16（プッシュ通知実機テスト＝通知フラグをtrueに戻すのは実機2台が揃ってから）
 
