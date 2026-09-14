@@ -12,10 +12,15 @@ web-build/
 # Native
 *.orig.*
 *.jks
+*.keystore
+!android/app/debug.keystore
 *.p8
 *.p12
 *.key
 *.mobileprovision
+
+# リリース署名の秘密情報（絶対にコミットしない）
+android/keystore.properties
 
 # Metro
 .metro-health-check*
