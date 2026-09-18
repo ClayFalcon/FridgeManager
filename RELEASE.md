@@ -96,7 +96,7 @@ keytool -list -v -keystore android/app/upload-keystore.jks -alias upload
 
 1. [Firebase Console](https://console.firebase.google.com/) → プロジェクト `fridgemanager-64c00`
 2. ⚙️ プロジェクトの設定 → 「マイアプリ」の Android アプリ（`com.terrastrix.fridgemanager`）
-   （2026-09 にアプリIDを `com.clayfalcon.fridgemanager` から変更。未登録なら「アプリを追加」→ Android で新規登録する）
+   （2026-09 にアプリIDを変更。未登録なら「アプリを追加」→ Android で新規登録する）
 3. 「フィンガープリントを追加」→ 3-1 の **SHA-1** を貼り付け（SHA-256も推奨）→ 保存
 4. `google-services.json` を使っていれば再ダウンロード（このアプリは firebase.ts に直書きのため不要）
 

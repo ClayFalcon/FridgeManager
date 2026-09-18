@@ -17,7 +17,7 @@ FridgeManagerの開発フロー完全ガイドです。リポジトリクロー�
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/ClayFalcon/FridgeManager.git
+git clone https://github.com/Terrastrix/FridgeManager.git
 cd FridgeManager
 
 # 開発ブランチ作成
@@ -449,4 +449,4 @@ npm run logs
 **最終更新**: 2025年1月27日  
 **バージョン**: 1.0.0  
 **ステータス**: 開発中  
-**開発者**: ClayFalcon
+**開発者**: Terrastrix
