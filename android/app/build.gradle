@@ -102,9 +102,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.clayfalcon.fridgemanager'
+    namespace 'com.terrastrix.fridgemanager'
     defaultConfig {
-        applicationId 'com.clayfalcon.fridgemanager'
+        applicationId 'com.terrastrix.fridgemanager'
         minSdkVersion 24
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

@@ -1,4 +1,4 @@
-package com.clayfalcon.fridgemanager
+package com.terrastrix.fridgemanager
 
 import android.app.Application
 import android.content.res.Configuration
