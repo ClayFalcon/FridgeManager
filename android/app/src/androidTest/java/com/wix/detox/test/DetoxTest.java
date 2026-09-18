@@ -11,7 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.rule.ActivityTestRule;
 
-import com.clayfalcon.fridgemanager.MainActivity;
+import com.terrastrix.fridgemanager.MainActivity;
 
 @RunWith(AndroidJUnit4.class)
 @LargeTest

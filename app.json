@@ -17,14 +17,14 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.clayfalcon.fridgemanager"
+      "bundleIdentifier": "com.terrastrix.fridgemanager"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.clayfalcon.fridgemanager"
+      "package": "com.terrastrix.fridgemanager"
     },
     "web": {
       "favicon": "./assets/favicon.png"

@@ -95,14 +95,15 @@ keytool -list -v -keystore android/app/upload-keystore.jks -alias upload
 ### 3-2. Firebase に登録
 
 1. [Firebase Console](https://console.firebase.google.com/) → プロジェクト `fridgemanager-64c00`
-2. ⚙️ プロジェクトの設定 → 「マイアプリ」の Android アプリ（`com.clayfalcon.fridgemanager`）
+2. ⚙️ プロジェクトの設定 → 「マイアプリ」の Android アプリ（`com.terrastrix.fridgemanager`）
+   （2026-09 にアプリIDを変更。未登録なら「アプリを追加」→ Android で新規登録する）
 3. 「フィンガープリントを追加」→ 3-1 の **SHA-1** を貼り付け（SHA-256も推奨）→ 保存
 4. `google-services.json` を使っていれば再ダウンロード（このアプリは firebase.ts に直書きのため不要）
 
 ### 3-3. Android用 OAuth クライアントIDの確認
 
 1. [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → プロジェクト `fridgemanager-64c00`
-2. 「OAuth 2.0 クライアント ID」に、パッケージ名 `com.clayfalcon.fridgemanager` +
+2. 「OAuth 2.0 クライアント ID」に、パッケージ名 `com.terrastrix.fridgemanager` +
    release の SHA-1 に対応する **Android タイプ** のクライアントがあることを確認
    （Firebaseでフィンガープリント登録すると自動生成される場合があります。無ければ手動作成）
 3. `.env` の `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` が上記Androidクライアントを指しているか確認

@@ -26,7 +26,7 @@ graph TD
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/ClayFalcon/FridgeManager.git
+git clone https://github.com/Terrastrix/FridgeManager.git
 cd FridgeManager
 
 # ブランチ作成
