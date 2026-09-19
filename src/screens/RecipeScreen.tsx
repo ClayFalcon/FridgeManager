@@ -5,9 +5,9 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Recipe } from '../types/recipe';
 import { FoodItem } from '../types/food';
 import { ShoppingItem } from '../types/shopping';
@@ -211,14 +211,14 @@ export default function RecipeScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root} testID="recipe-screen">
+      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']} testID="recipe-screen">
         <ActivityIndicator style={styles.loader} size="large" color="#0d8f7a" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.root} testID="recipe-screen">
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']} testID="recipe-screen">
       {/* ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerText}>

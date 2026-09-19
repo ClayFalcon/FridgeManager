@@ -5,10 +5,10 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Modal,
   ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
 import { useSharing } from '../context/SharingContext';
 import { subscribeHistory, HistoryEntry } from '../services/HistoryService';
@@ -38,7 +38,7 @@ export default function HistoryScreen() {
   }, [isLinked, ownerUid]);
 
   return (
-    <SafeAreaView style={styles.root} testID="history-screen">
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']} testID="history-screen">
       {/* ヘッダー */}
       <View style={styles.header}>
         <Text style={styles.headerTitle} testID="history-title">履歴</Text>
