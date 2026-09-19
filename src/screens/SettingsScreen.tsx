@@ -19,13 +19,7 @@ import { useAppSettings } from '../context/AppSettingsContext';
 import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
 import LinkGoogleButton from '../components/LinkGoogleButton';
-import { LocalRepository } from '../db/LocalRepository';
-import { CloudRepository } from '../db/CloudRepository';
-import { LocalRecipeRepository } from '../db/LocalRecipeRepository';
-import { CloudRecipeRepository } from '../db/CloudRecipeRepository';
-import { LocalShoppingRepository } from '../db/LocalShoppingRepository';
-import { CloudShoppingRepository } from '../db/CloudShoppingRepository';
-import { migrateToCloud } from '../services/MigrationService';
+import { linkGoogleAndMigrate } from '../services/FamilySharingService';
 import { getSettings, saveSettings } from '../db/NotificationSettingsStore';
 import { clampSettingsToTier } from '../utils/notificationTier';
 import { rescheduleExpiryNotifications } from '../services/ExpiryNotificationScheduler';
@@ -186,13 +180,10 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   async function handleLinkGoogle() {
     setIsLinking(true);
     try {
-      await signInAnon();
-      await authService.linkWithGoogle();
-      if (user) {
-        await migrateToCloud(new LocalRepository(), new CloudRepository(user.uid));
-        await migrateToCloud(new LocalRecipeRepository(), new CloudRecipeRepository(user.uid));
-        await migrateToCloud(new LocalShoppingRepository(), new CloudShoppingRepository(user.uid));
-      }
+      await linkGoogleAndMigrate({
+        signInAnon,
+        linkWithGoogle: () => authService.linkWithGoogle(),
+      });
       await refresh();
       Alert.alert('完了', '家族との共有を開始しました');
     } catch (e) {
