@@ -128,6 +128,19 @@ describe('joinWithCode', () => {
     ]);
   });
 
+  it('名前があれば、オーナーのメンバー一覧に表示する名前も登録する', async () => {
+    (getDoc as jest.Mock).mockResolvedValue(makeInviteSnap('owner-uid', FUTURE));
+    (setDoc as jest.Mock).mockResolvedValue(undefined);
+
+    await joinWithCode('ABC123', 'my-uid', 'はやと');
+
+    expect(setDoc).toHaveBeenCalledWith('users/owner-uid/members/my-uid', {
+      joinedAt: { _type: 'serverTimestamp' },
+      inviteCode: 'ABC123',
+      displayName: 'はやと',
+    });
+  });
+
   it('参加する側はオーナーのメンバー一覧を読まない（権限が無いため）', async () => {
     (getDoc as jest.Mock).mockResolvedValue(makeInviteSnap('owner-uid', FUTURE));
     (setDoc as jest.Mock).mockResolvedValue(undefined);
@@ -217,6 +230,15 @@ describe('getMembers', () => {
     expect(members).toHaveLength(2);
     expect(members[0].uid).toBe('uid-a');
     expect(members[1].uid).toBe('uid-b');
+  });
+
+  it('メンバーの名前も返す', async () => {
+    (getDocs as jest.Mock).mockResolvedValue({
+      size: 1,
+      docs: [{ id: 'uid-a', data: () => ({ joinedAt: null, displayName: 'はやと' }) }],
+    });
+    const members = await getMembers('owner-uid');
+    expect(members[0].displayName).toBe('はやと');
   });
 
   it('メンバーがいない場合は空配列を返す', async () => {

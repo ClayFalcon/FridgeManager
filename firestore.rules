@@ -14,6 +14,11 @@ service cloud.firestore {
       return isSignedIn() && (request.auth.uid == ownerUid || isMember(ownerUid));
     }
 
+    // 家族に表示する名前（DisplayNameService.DISPLAY_NAME_MAX_LENGTH と上限を合わせる）
+    function isValidDisplayName(name) {
+      return name is string && name.size() >= 1 && name.size() <= 20;
+    }
+
     // ownerUid が発行した、期限内の招待コードか
     function isValidInvite(code, ownerUid) {
       let invitePath = /databases/$(database)/documents/invites/$(code);
@@ -36,11 +41,26 @@ service cloud.firestore {
         allow create: if isSignedIn()
           && request.auth.uid == memberUid
           && memberUid != ownerUid
-          && request.resource.data.keys().hasOnly(['joinedAt', 'inviteCode'])
+          && request.resource.data.keys().hasOnly(['joinedAt', 'inviteCode', 'displayName'])
           && request.resource.data.joinedAt == request.time
+          && (!('displayName' in request.resource.data)
+            || isValidDisplayName(request.resource.data.displayName))
           && isValidInvite(request.resource.data.inviteCode, ownerUid);
         allow delete: if isSignedIn() && (request.auth.uid == ownerUid || request.auth.uid == memberUid);
-        allow update: if false;
+        // メンバー本人が、自分の表示名だけを変更できる
+        allow update: if isSignedIn()
+          && request.auth.uid == memberUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+          && isValidDisplayName(request.resource.data.displayName);
+      }
+
+      // オーナーの表示名（グループのメンバーが読める）
+      match /meta/owner {
+        allow read: if isSelfOrMember(ownerUid);
+        allow write: if isSignedIn()
+          && request.auth.uid == ownerUid
+          && request.resource.data.keys().hasOnly(['displayName'])
+          && isValidDisplayName(request.resource.data.displayName);
       }
 
       match /food_items/{itemId} {

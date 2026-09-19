@@ -12,13 +12,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { auth, db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useSharing } from '../context/SharingContext';
 import { useAppSettings } from '../context/AppSettingsContext';
 import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
 import LinkGoogleButton from '../components/LinkGoogleButton';
+import DisplayNameModal from '../components/DisplayNameModal';
+import {
+  getMyDisplayName,
+  getOwnerDisplayName,
+  saveMyDisplayName,
+} from '../services/DisplayNameService';
 import { linkGoogleAndMigrate } from '../services/FamilySharingService';
 import { getSettings, saveSettings } from '../db/NotificationSettingsStore';
 import { clampSettingsToTier } from '../utils/notificationTier';
@@ -59,6 +65,10 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
+  const [myName, setMyName] = useState<string | null>(null);
+  const [ownerName, setOwnerName] = useState<string | null>(null);
+  // null: 非表示 / 'afterLink': 共有を始めた直後 / 'edit': 設定画面から変更
+  const [nameModal, setNameModal] = useState<null | 'afterLink' | 'edit'>(null);
 
   const isLinked = user !== null && !user.isAnonymous;
   const effectiveOwnerUid = ownerUid ?? user?.uid ?? 'local';
@@ -76,6 +86,32 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   useEffect(() => {
     setNotificationSettings(getSettings());
   }, []);
+
+  useEffect(() => {
+    if (!isLinked || !user) {
+      setMyName(null);
+      return;
+    }
+    getMyDisplayName(user.uid)
+      .then(setMyName)
+      .catch(() => setMyName(null));
+  }, [isLinked, user?.uid]);
+
+  useEffect(() => {
+    if (!isLinked || isOwner || !ownerUid) {
+      setOwnerName(null);
+      return;
+    }
+    getOwnerDisplayName(ownerUid).then(setOwnerName);
+  }, [isLinked, isOwner, ownerUid]);
+
+  async function handleSaveName(name: string) {
+    const uid = auth.currentUser?.uid ?? user?.uid;
+    if (!uid) throw new Error('ログイン中のユーザーが見つかりません');
+    const saved = await saveMyDisplayName(uid, name, ownerUid);
+    setMyName(saved);
+    setNameModal(null);
+  }
 
   function persistNotificationSettings(next: NotificationSettings) {
     const clamped = clampSettingsToTier(next);
@@ -185,12 +221,18 @@ export default function SettingsScreen({ onBack, authService }: Props) {
         linkWithGoogle: () => authService.linkWithGoogle(),
       });
       await refresh();
-      Alert.alert(
-        '完了',
-        result === 'signedIn'
-          ? '以前の共有データを読み込みました。この端末で追加したデータは引き継がれません。'
-          : '家族との共有を開始しました',
-      );
+      if (result === 'signedIn') {
+        Alert.alert('完了', '以前の共有データを読み込みました。この端末で追加したデータは引き継がれません。');
+      }
+      // 共有を始めたら、家族に表示する名前を決めてもらう（入れ直し後で名前が決まっていれば聞かない）
+      const uid = auth.currentUser?.uid;
+      const existingName = uid ? await getMyDisplayName(uid).catch(() => null) : null;
+      if (existingName) {
+        setMyName(existingName);
+        if (result === 'linked') Alert.alert('完了', '家族との共有を開始しました');
+      } else {
+        setNameModal('afterLink');
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : '不明なエラー';
       if (message !== 'Google sign-in cancelled or failed') {
@@ -218,7 +260,7 @@ export default function SettingsScreen({ onBack, authService }: Props) {
     if (!user || !inviteInput.trim()) return;
     setIsJoining(true);
     try {
-      await joinWithCode(inviteInput.trim(), user.uid);
+      await joinWithCode(inviteInput.trim(), user.uid, myName);
       await refresh();
       setInviteInput('');
       Alert.alert('完了', 'フリッジに参加しました');
@@ -321,10 +363,23 @@ export default function SettingsScreen({ onBack, authService }: Props) {
           <Text style={styles.sectionTitle}>データ共有</Text>
 
           {isLinked ? (
-            <View testID="linked-status" style={styles.linkedCard}>
-              <Text style={styles.linkedText}>Googleアカウントで共有中</Text>
-              <Text style={styles.linkedSub}>{user?.email}</Text>
-            </View>
+            <>
+              <View testID="linked-status" style={styles.linkedCard}>
+                <Text style={styles.linkedText}>Googleアカウントで共有中</Text>
+                <Text style={styles.linkedSub}>{user?.email}</Text>
+              </View>
+              <View style={styles.nameRow}>
+                <View style={styles.nameInfo}>
+                  <Text style={styles.nameLabel}>家族に表示する名前</Text>
+                  <Text style={styles.nameValue} testID="my-display-name">
+                    {myName ?? '未設定'}
+                  </Text>
+                </View>
+                <TouchableOpacity testID="btn-edit-display-name" onPress={() => setNameModal('edit')}>
+                  <Text style={styles.nameEditText}>{myName ? '変更' : '設定'}</Text>
+                </TouchableOpacity>
+              </View>
+            </>
           ) : (
             <LinkGoogleButton isLinking={isLinking} onPress={handleLinkGoogle} />
           )}
@@ -478,7 +533,7 @@ export default function SettingsScreen({ onBack, authService }: Props) {
                   style={styles.memberRow}
                   testID={`member-row-${member.uid.substring(0, 8)}`}
                 >
-                  <Text style={styles.memberUid}>{member.uid.substring(0, 12)}...</Text>
+                  <Text style={styles.memberUid}>{member.displayName ?? '名前未設定'}</Text>
                   <TouchableOpacity
                     testID={`btn-remove-member-${member.uid.substring(0, 8)}`}
                     onPress={() => handleRemoveMember(member.uid)}
@@ -530,7 +585,9 @@ export default function SettingsScreen({ onBack, authService }: Props) {
             <Text style={styles.sectionTitle}>共有状態</Text>
             <View style={styles.linkedCard}>
               <Text style={styles.linkedText}>オーナーのフリッジに参加中</Text>
-              <Text style={styles.linkedSub}>{ownerUid.substring(0, 12)}...</Text>
+              <Text style={styles.linkedSub} testID="owner-display-name">
+                {ownerName ? `${ownerName} さん` : '名前未設定'}
+              </Text>
             </View>
             <TouchableOpacity
               testID="btn-leave-sharing"
@@ -547,6 +604,14 @@ export default function SettingsScreen({ onBack, authService }: Props) {
           </View>
         )}
       </ScrollView>
+      <DisplayNameModal
+        visible={nameModal !== null}
+        lead={nameModal === 'afterLink' ? '家族との共有を開始しました' : undefined}
+        initialName={nameModal === 'edit' ? myName : null}
+        cancelLabel={nameModal === 'afterLink' ? 'あとで' : 'キャンセル'}
+        onSave={handleSaveName}
+        onCancel={() => setNameModal(null)}
+      />
     </SafeAreaView>
   );
 }
@@ -649,6 +714,31 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '700',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  nameInfo: {
+    flex: 1,
+  },
+  nameLabel: {
+    fontSize: 12,
+    color: '#5c7a72',
+  },
+  nameValue: {
+    marginTop: 2,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1f2d2a',
+  },
+  nameEditText: {
+    color: '#0d8f7a',
+    fontSize: 14,
+    fontWeight: '700',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
   },
   linkedCard: {
     backgroundColor: '#f0f9f5',
