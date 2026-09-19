@@ -18,6 +18,7 @@ import { useSharing } from '../context/SharingContext';
 import { useAppSettings } from '../context/AppSettingsContext';
 import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
+import LinkGoogleButton from '../components/LinkGoogleButton';
 import { LocalRepository } from '../db/LocalRepository';
 import { CloudRepository } from '../db/CloudRepository';
 import { LocalRecipeRepository } from '../db/LocalRecipeRepository';
@@ -329,18 +330,7 @@ export default function SettingsScreen({ onBack, authService }: Props) {
               <Text style={styles.linkedSub}>{user?.email}</Text>
             </View>
           ) : (
-            <TouchableOpacity
-              testID="btn-link-google"
-              style={[styles.linkBtn, isLinking && styles.linkBtnDisabled]}
-              onPress={handleLinkGoogle}
-              disabled={isLinking}
-            >
-              {isLinking ? (
-                <ActivityIndicator testID="link-loading" color="#ffffff" />
-              ) : (
-                <Text style={styles.linkBtnText}>家族と共有する</Text>
-              )}
-            </TouchableOpacity>
+            <LinkGoogleButton isLinking={isLinking} onPress={handleLinkGoogle} />
           )}
         </View>
 
