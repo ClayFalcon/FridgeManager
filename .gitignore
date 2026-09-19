@@ -60,3 +60,6 @@ firebaseConfig
 
 # Claude Code (local settings)
 .claude/settings.local.json
+
+# Claude Code の MCP 設定（PC ごとの絶対パスを含むためコミットしない）
+.mcp.json

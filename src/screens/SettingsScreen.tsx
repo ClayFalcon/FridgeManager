@@ -18,13 +18,8 @@ import { useSharing } from '../context/SharingContext';
 import { useAppSettings } from '../context/AppSettingsContext';
 import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
-import { LocalRepository } from '../db/LocalRepository';
-import { CloudRepository } from '../db/CloudRepository';
-import { LocalRecipeRepository } from '../db/LocalRecipeRepository';
-import { CloudRecipeRepository } from '../db/CloudRecipeRepository';
-import { LocalShoppingRepository } from '../db/LocalShoppingRepository';
-import { CloudShoppingRepository } from '../db/CloudShoppingRepository';
-import { migrateToCloud } from '../services/MigrationService';
+import LinkGoogleButton from '../components/LinkGoogleButton';
+import { linkGoogleAndMigrate } from '../services/FamilySharingService';
 import { getSettings, saveSettings } from '../db/NotificationSettingsStore';
 import { clampSettingsToTier } from '../utils/notificationTier';
 import { rescheduleExpiryNotifications } from '../services/ExpiryNotificationScheduler';
@@ -185,15 +180,17 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   async function handleLinkGoogle() {
     setIsLinking(true);
     try {
-      await signInAnon();
-      await authService.linkWithGoogle();
-      if (user) {
-        await migrateToCloud(new LocalRepository(), new CloudRepository(user.uid));
-        await migrateToCloud(new LocalRecipeRepository(), new CloudRecipeRepository(user.uid));
-        await migrateToCloud(new LocalShoppingRepository(), new CloudShoppingRepository(user.uid));
-      }
+      const result = await linkGoogleAndMigrate({
+        signInAnon,
+        linkWithGoogle: () => authService.linkWithGoogle(),
+      });
       await refresh();
-      Alert.alert('完了', '家族との共有を開始しました');
+      Alert.alert(
+        '完了',
+        result === 'signedIn'
+          ? '以前の共有データを読み込みました。この端末で追加したデータは引き継がれません。'
+          : '家族との共有を開始しました',
+      );
     } catch (e) {
       const message = e instanceof Error ? e.message : '不明なエラー';
       if (message !== 'Google sign-in cancelled or failed') {
@@ -329,18 +326,7 @@ export default function SettingsScreen({ onBack, authService }: Props) {
               <Text style={styles.linkedSub}>{user?.email}</Text>
             </View>
           ) : (
-            <TouchableOpacity
-              testID="btn-link-google"
-              style={[styles.linkBtn, isLinking && styles.linkBtnDisabled]}
-              onPress={handleLinkGoogle}
-              disabled={isLinking}
-            >
-              {isLinking ? (
-                <ActivityIndicator testID="link-loading" color="#ffffff" />
-              ) : (
-                <Text style={styles.linkBtnText}>家族と共有する</Text>
-              )}
-            </TouchableOpacity>
+            <LinkGoogleButton isLinking={isLinking} onPress={handleLinkGoogle} />
           )}
         </View>
 

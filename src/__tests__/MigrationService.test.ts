@@ -47,6 +47,26 @@ describe('migrateToCloud', () => {
     await expect(migrateToCloud(local, cloud)).rejects.toThrow('Firestore write failed');
   });
 
+  it('移行先が一括書き込み(addAll)に対応していれば、1件ずつではなくまとめて書き込む', async () => {
+    const local = makeRepo(sampleItems);
+    const cloud = { ...makeRepo(), addAll: jest.fn().mockResolvedValue(undefined) };
+
+    await migrateToCloud(local, cloud);
+
+    expect(cloud.addAll).toHaveBeenCalledTimes(1);
+    expect(cloud.addAll).toHaveBeenCalledWith(sampleItems);
+    expect(cloud.add).not.toHaveBeenCalled();
+  });
+
+  it('0件なら一括書き込みも呼ばない', async () => {
+    const local = makeRepo([]);
+    const cloud = { ...makeRepo(), addAll: jest.fn() };
+
+    await migrateToCloud(local, cloud);
+
+    expect(cloud.addAll).not.toHaveBeenCalled();
+  });
+
   it('ジェネリック化によりレシピ等の別型リポジトリも移行できる', async () => {
     const recipes = [
       { id: '1', name: 'トマトパスタ', ingredients: [{ name: 'トマト' }] },

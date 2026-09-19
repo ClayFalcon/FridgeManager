@@ -10,6 +10,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { setAllInBatches } from './batchWrite';
 import { FoodItem, StockLevel } from '../types/food';
 import { FoodRepository } from './FoodRepository';
 
@@ -60,6 +61,11 @@ export class CloudRepository implements FoodRepository {
 
   async add(item: FoodItem): Promise<void> {
     await setDoc(doc(foodItemPath(this.uid), item.id), toDoc(item));
+  }
+
+  // 移行時などの複数件保存はバッチで一括書き込みする
+  async addAll(items: FoodItem[]): Promise<void> {
+    await setAllInBatches(items, (item) => [doc(foodItemPath(this.uid), item.id), toDoc(item)]);
   }
 
   async update(item: FoodItem): Promise<void> {
