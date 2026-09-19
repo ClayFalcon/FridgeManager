@@ -20,6 +20,7 @@ import { useRepository } from '../hooks/useRepository';
 import { AuthService } from '../services/AuthService';
 import LinkGoogleButton from '../components/LinkGoogleButton';
 import DisplayNameModal from '../components/DisplayNameModal';
+import { JOINED_TITLE, joinedMessage, sharingStatusLabel } from '../utils/sharingMessages';
 import {
   getMyDisplayName,
   getOwnerDisplayName,
@@ -260,10 +261,11 @@ export default function SettingsScreen({ onBack, authService }: Props) {
     if (!user || !inviteInput.trim()) return;
     setIsJoining(true);
     try {
-      await joinWithCode(inviteInput.trim(), user.uid, myName);
+      const joinedOwnerUid = await joinWithCode(inviteInput.trim(), user.uid, myName);
+      const joinedOwnerName = await getOwnerDisplayName(joinedOwnerUid);
       await refresh();
       setInviteInput('');
-      Alert.alert('完了', 'フリッジに参加しました');
+      Alert.alert(JOINED_TITLE, joinedMessage(joinedOwnerName));
     } catch (e) {
       Alert.alert('エラー', e instanceof Error ? e.message : '不明なエラー');
     } finally {
@@ -584,9 +586,8 @@ export default function SettingsScreen({ onBack, authService }: Props) {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>共有状態</Text>
             <View style={styles.linkedCard}>
-              <Text style={styles.linkedText}>オーナーのフリッジに参加中</Text>
-              <Text style={styles.linkedSub} testID="owner-display-name">
-                {ownerName ? `${ownerName} さん` : '名前未設定'}
+              <Text style={styles.linkedText} testID="sharing-status-label">
+                {sharingStatusLabel(ownerName)}
               </Text>
             </View>
             <TouchableOpacity

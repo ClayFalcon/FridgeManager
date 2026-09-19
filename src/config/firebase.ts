@@ -18,7 +18,7 @@ const firebaseConfig = {
 };
 
 // React Native 用の永続化（AsyncStorage）。これによりアプリ再起動後もログイン状態が保持され、
-// Google 連携ユーザーが共有フリッジに継続してアクセスできる。
+// Google 連携ユーザーが共有中の冷蔵庫に継続してアクセスできる。
 const getReactNativePersistence = (
   FirebaseAuth as unknown as {
     getReactNativePersistence: (storage: unknown) => import('firebase/auth').Persistence;
