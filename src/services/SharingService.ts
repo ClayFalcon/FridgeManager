@@ -5,6 +5,7 @@ import {
   setDoc,
   deleteDoc,
   getDocs,
+  onSnapshot,
   Timestamp,
   serverTimestamp,
 } from 'firebase/firestore';
@@ -91,6 +92,27 @@ export async function getOwnerUid(myUid: string): Promise<string> {
   } catch {
     return myUid;
   }
+}
+
+// 参加中のグループから外されたら onRemoved を呼ぶ。外されるとメンバー情報が消え、
+// 同時に読む権限も無くなるため、「存在しない」と「権限エラー」のどちらも外された合図とみなす。
+export function watchMembership(
+  ownerUid: string,
+  myUid: string,
+  onRemoved: () => void,
+): () => void {
+  return onSnapshot(
+    memberDoc(ownerUid, myUid),
+    (snap) => {
+      if (!snap.exists()) onRemoved();
+    },
+    () => onRemoved(),
+  );
+}
+
+// 外されたあと、次回起動時に元のグループを見に行かないよう所属を消す
+export async function clearMyGroup(myUid: string): Promise<void> {
+  await setDoc(profileDoc(myUid), { ownerUid: null });
 }
 
 export async function getMembers(ownerUid: string): Promise<Member[]> {

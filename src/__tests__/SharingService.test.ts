@@ -5,6 +5,8 @@ import {
   getMembers,
   removeMember,
   leaveSharing,
+  watchMembership,
+  clearMyGroup,
   MEMBER_LIMIT,
 } from '../services/SharingService';
 
@@ -21,6 +23,7 @@ jest.mock('firebase/firestore', () => ({
   setDoc: jest.fn(),
   deleteDoc: jest.fn(),
   getDocs: jest.fn(),
+  onSnapshot: jest.fn(),
   Timestamp: {
     fromDate: jest.fn((d: Date) => ({ toDate: () => d })),
   },
@@ -29,7 +32,7 @@ jest.mock('firebase/firestore', () => ({
 
 jest.mock('../config/firebase', () => ({ db: {} }));
 
-import { getDoc, setDoc, deleteDoc, getDocs, Timestamp } from 'firebase/firestore';
+import { getDoc, setDoc, deleteDoc, getDocs, onSnapshot, Timestamp } from 'firebase/firestore';
 
 // ── ヘルパー ──────────────────────────────────────────
 
@@ -252,6 +255,60 @@ describe('leaveSharing', () => {
     expect(deleteDoc).toHaveBeenCalledWith(
       expect.stringContaining('users/owner-uid/members/my-uid'),
     );
+    expect(setDoc).toHaveBeenCalledWith('users/my-uid/profile/sharing', { ownerUid: null });
+  });
+});
+
+// ── watchMembership / clearMyGroup ────────────────────
+
+describe('watchMembership', () => {
+  let onNext: (snap: { exists: () => boolean }) => void;
+  let onError: (e: Error) => void;
+  const unsubscribe = jest.fn();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (onSnapshot as jest.Mock).mockImplementation((_ref, next, error) => {
+      onNext = next;
+      onError = error;
+      return unsubscribe;
+    });
+  });
+
+  it('オーナー配下の自分のメンバー情報を監視し、解除関数を返す', () => {
+    const stop = watchMembership('owner-uid', 'my-uid', jest.fn());
+    expect(onSnapshot).toHaveBeenCalledWith('users/owner-uid/members/my-uid', expect.any(Function), expect.any(Function));
+    expect(stop).toBe(unsubscribe);
+  });
+
+  it('メンバー情報が残っている間は何もしない', () => {
+    const onRemoved = jest.fn();
+    watchMembership('owner-uid', 'my-uid', onRemoved);
+    onNext({ exists: () => true });
+    expect(onRemoved).not.toHaveBeenCalled();
+  });
+
+  it('メンバー情報が消えたら外されたとみなす', () => {
+    const onRemoved = jest.fn();
+    watchMembership('owner-uid', 'my-uid', onRemoved);
+    onNext({ exists: () => false });
+    expect(onRemoved).toHaveBeenCalledTimes(1);
+  });
+
+  it('読む権限が無くなったら外されたとみなす', () => {
+    const onRemoved = jest.fn();
+    watchMembership('owner-uid', 'my-uid', onRemoved);
+    onError(new Error('permission-denied'));
+    expect(onRemoved).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('clearMyGroup', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('自分の所属グループを空にする', async () => {
+    (setDoc as jest.Mock).mockResolvedValue(undefined);
+    await clearMyGroup('my-uid');
     expect(setDoc).toHaveBeenCalledWith('users/my-uid/profile/sharing', { ownerUid: null });
   });
 });
