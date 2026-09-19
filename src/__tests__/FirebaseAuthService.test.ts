@@ -1,6 +1,8 @@
 const mockPromptAsync = jest.fn();
 const mockExchangeCodeAsync = jest.fn();
 const mockLinkWithCredential = jest.fn();
+const mockSignInWithCredential = jest.fn();
+const mockCredentialFromError = jest.fn();
 const mockCredential = jest.fn((idToken: string) => ({ idToken }));
 const mockRequest = {
   redirectUri: 'com.terrastrix.fridgemanager:/oauthredirect',
@@ -20,8 +22,12 @@ jest.mock('expo-auth-session/providers/google', () => ({
   discovery: { tokenEndpoint: 'https://oauth2.googleapis.com/token' },
 }));
 jest.mock('firebase/auth', () => ({
-  GoogleAuthProvider: { credential: (idToken: string) => mockCredential(idToken) },
+  GoogleAuthProvider: {
+    credential: (idToken: string) => mockCredential(idToken),
+    credentialFromError: (e: unknown) => mockCredentialFromError(e),
+  },
   linkWithCredential: (...args: unknown[]) => mockLinkWithCredential(...args),
+  signInWithCredential: (...args: unknown[]) => mockSignInWithCredential(...args),
 }));
 jest.mock('../config/firebase', () => ({ auth: mockAuth }));
 
@@ -42,6 +48,8 @@ describe('FirebaseAuthService.linkWithGoogle', () => {
     process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID = ANDROID_CLIENT_ID;
     process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID = 'web-client.apps.googleusercontent.com';
     mockAuth.currentUser = { uid: 'anon-uid' };
+    mockLinkWithCredential.mockResolvedValue(undefined);
+    mockCredentialFromError.mockReturnValue(null);
   });
 
   it('フックの自動コード交換を無効にする（コードは1回しか交換できないため）', () => {
@@ -55,7 +63,7 @@ describe('FirebaseAuthService.linkWithGoogle', () => {
     mockPromptAsync.mockResolvedValue({ type: 'success', params: { code: 'auth-code' } });
     mockExchangeCodeAsync.mockResolvedValue({ idToken: 'id-token-from-exchange' });
 
-    await loadService().linkWithGoogle();
+    await expect(loadService().linkWithGoogle()).resolves.toBe('linked');
 
     expect(mockExchangeCodeAsync).toHaveBeenCalledWith(
       {
@@ -79,6 +87,39 @@ describe('FirebaseAuthService.linkWithGoogle', () => {
 
     expect(mockExchangeCodeAsync).not.toHaveBeenCalled();
     expect(mockCredential).toHaveBeenCalledWith('direct-id-token');
+  });
+
+  it('Google アカウントが既存ユーザーにつながっていれば、そのユーザーでログインし直す', async () => {
+    mockPromptAsync.mockResolvedValue({ type: 'success', params: { id_token: 'id-token' } });
+    const error = Object.assign(new Error('already in use'), { code: 'auth/credential-already-in-use' });
+    mockLinkWithCredential.mockRejectedValue(error);
+    mockCredentialFromError.mockReturnValue({ idToken: 'credential-from-error' });
+
+    await expect(loadService().linkWithGoogle()).resolves.toBe('signedIn');
+
+    expect(mockCredentialFromError).toHaveBeenCalledWith(error);
+    expect(mockSignInWithCredential).toHaveBeenCalledWith(mockAuth, { idToken: 'credential-from-error' });
+  });
+
+  it('エラーから資格情報を取り出せなければ、元の資格情報でログインし直す', async () => {
+    mockPromptAsync.mockResolvedValue({ type: 'success', params: { id_token: 'id-token' } });
+    mockLinkWithCredential.mockRejectedValue(
+      Object.assign(new Error('already in use'), { code: 'auth/credential-already-in-use' }),
+    );
+
+    await expect(loadService().linkWithGoogle()).resolves.toBe('signedIn');
+
+    expect(mockSignInWithCredential).toHaveBeenCalledWith(mockAuth, { idToken: 'id-token' });
+  });
+
+  it('それ以外のリンク失敗はそのままエラーにする', async () => {
+    mockPromptAsync.mockResolvedValue({ type: 'success', params: { id_token: 'id-token' } });
+    mockLinkWithCredential.mockRejectedValue(
+      Object.assign(new Error('network'), { code: 'auth/network-request-failed' }),
+    );
+
+    await expect(loadService().linkWithGoogle()).rejects.toThrow('network');
+    expect(mockSignInWithCredential).not.toHaveBeenCalled();
   });
 
   it('コード交換で ID トークンが得られなければエラーにする', async () => {

@@ -39,10 +39,12 @@ describe('linkGoogleAndMigrate', () => {
     const signInAnon = jest.fn(async () => {
       mockAuth.currentUser = { uid: 'new-anon-uid' };
     });
-    const linkWithGoogle = jest.fn().mockResolvedValue(undefined);
+    const linkWithGoogle = jest.fn().mockResolvedValue('linked');
     const migrateAll = jest.fn().mockResolvedValue(undefined);
 
-    await linkGoogleAndMigrate({ signInAnon, linkWithGoogle, migrateAll });
+    await expect(linkGoogleAndMigrate({ signInAnon, linkWithGoogle, migrateAll })).resolves.toBe(
+      'linked',
+    );
 
     expect(signInAnon).toHaveBeenCalledTimes(1);
     expect(linkWithGoogle).toHaveBeenCalledTimes(1);
@@ -57,6 +59,7 @@ describe('linkGoogleAndMigrate', () => {
       },
       linkWithGoogle: async () => {
         order.push('link');
+        return 'linked';
       },
       getCurrentUid: () => 'uid',
       migrateAll: async () => {
@@ -80,13 +83,27 @@ describe('linkGoogleAndMigrate', () => {
     expect(migrateAll).not.toHaveBeenCalled();
   });
 
+  it('既存ユーザーでログインし直した場合（入れ直し・機種変更）は、端末データを移行しない', async () => {
+    const migrateAll = jest.fn();
+
+    await expect(
+      linkGoogleAndMigrate({
+        signInAnon: jest.fn().mockResolvedValue(undefined),
+        linkWithGoogle: jest.fn().mockResolvedValue('signedIn'),
+        getCurrentUid: () => 'existing-uid',
+        migrateAll,
+      }),
+    ).resolves.toBe('signedIn');
+    expect(migrateAll).not.toHaveBeenCalled();
+  });
+
   it('リンク後もユーザーが取れなければエラーにして移行しない', async () => {
     const migrateAll = jest.fn();
 
     await expect(
       linkGoogleAndMigrate({
         signInAnon: jest.fn().mockResolvedValue(undefined),
-        linkWithGoogle: jest.fn().mockResolvedValue(undefined),
+        linkWithGoogle: jest.fn().mockResolvedValue('linked'),
         getCurrentUid: () => null,
         migrateAll,
       }),

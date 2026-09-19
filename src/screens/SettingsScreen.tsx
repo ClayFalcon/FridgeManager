@@ -180,12 +180,17 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   async function handleLinkGoogle() {
     setIsLinking(true);
     try {
-      await linkGoogleAndMigrate({
+      const result = await linkGoogleAndMigrate({
         signInAnon,
         linkWithGoogle: () => authService.linkWithGoogle(),
       });
       await refresh();
-      Alert.alert('完了', '家族との共有を開始しました');
+      Alert.alert(
+        '完了',
+        result === 'signedIn'
+          ? '以前の共有データを読み込みました。この端末で追加したデータは引き継がれません。'
+          : '家族との共有を開始しました',
+      );
     } catch (e) {
       const message = e instanceof Error ? e.message : '不明なエラー';
       if (message !== 'Google sign-in cancelled or failed') {

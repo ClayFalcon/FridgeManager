@@ -1,9 +1,10 @@
 import { exchangeCodeAsync } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { GoogleAuthProvider, linkWithCredential } from 'firebase/auth';
+import { GoogleAuthProvider, linkWithCredential, signInWithCredential } from 'firebase/auth';
+import type { FirebaseError } from 'firebase/app';
 import { auth } from '../config/firebase';
-import { AuthService } from './AuthService';
+import { AuthService, GoogleLinkResult } from './AuthService';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -25,7 +26,7 @@ export function useFirebaseAuthService(): AuthService {
   });
 
   return {
-    async linkWithGoogle(): Promise<void> {
+    async linkWithGoogle(): Promise<GoogleLinkResult> {
       if (!ANDROID_CLIENT_ID || !WEB_CLIENT_ID) {
         throw new Error(
           'Google OAuth が未設定です。.env ファイルに EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID と EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID を設定してください。',
@@ -56,7 +57,19 @@ export function useFirebaseAuthService(): AuthService {
       if (!currentUser) {
         throw new Error('ログイン中のユーザーが見つかりません');
       }
-      await linkWithCredential(currentUser, credential);
+      try {
+        await linkWithCredential(currentUser, credential);
+        return 'linked';
+      } catch (e) {
+        // 入れ直し・機種変更後など、この Google アカウントが既存ユーザーにつながっている場合は
+        // そのユーザーでログインし直して共有を再開する（匿名ユーザーは使われなくなる）
+        if ((e as FirebaseError).code === 'auth/credential-already-in-use') {
+          const existing = GoogleAuthProvider.credentialFromError(e as FirebaseError) ?? credential;
+          await signInWithCredential(auth, existing);
+          return 'signedIn';
+        }
+        throw e;
+      }
     },
   };
 }
