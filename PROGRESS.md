@@ -1,34 +1,70 @@
 # PROGRESS
 
-最終更新: 2026-09-14
+最終更新: 2026-09-19
 
 ## 現在の状態
 
-**リリース準備フェーズ。通知無効化・Auth永続化に加え、リリース署名の仕組みとFirestoreデプロイ設定・手順書を整備。CI（Unit/E2E）グリーン。**
+**リリース準備フェーズ。コード側・Firebase/Google Cloud 側の準備は完了し、残りは Play Console での作業のみ。
+CI（Unit / Firestore ルール / E2E）グリーン。**
 
+- **Expo SDK 54 の推奨バージョンに依存を揃えた**（React Native 0.81.5 / React 19.1）。`npx expo install --check` で差分なし
+- **アプリIDは `com.terrastrix.fridgemanager`**（2026-09-18 に `com.clayfalcon.fridgemanager` から変更。Play 未公開だったため可能だった）
+- **家族共有を実機2台（スマホ＋エミュレータ、release ビルド）で一通り確認済み**:
+  Google 連携 → 初回データ移行（一括書き込みで2〜3秒）→ 招待コード発行・参加 → 在庫変更の相互反映 →
+  メンバー削除（参加者側は開いたまま自分の冷蔵庫に戻る）→ アプリ入れ直し後の共有再開
+- 家族に表示する名前（メンバー一覧・共有状態に表示、設定画面で変更可）を追加
 - **通知機能はフィーチャーフラグで無効化中**（`src/config/features.ts` の `NOTIFICATIONS_ENABLED=false`）。
   プッシュ通知はEAS設定+実機2台のテストが必要でリリースのネックになるため。true に戻すだけで全機能復活。
   無効化対象: 他メンバー通知ボタン・トークン登録・賞味期限ローカル通知・通知設定セクション・通知タップ遷移・履歴タブ
-- **Auth永続化を AsyncStorage に変更済み**（`src/config/firebase.ts`）。再起動後もログイン保持=共有機能が本番運用可能に。
-  懸念だったDetox再ハングは発生せず（E2E全44件成功）
+- **Auth永続化は AsyncStorage**（`src/config/firebase.ts`）。再起動後もログイン保持
 - 実装済み機能: レシピCRUD+在庫照合、買い物リスト、賞味期限目安日数、在庫ステータス2/3段階切替、
-  履歴タブ（通知有効時のみ）、Google連携による共有
-- データは食材と同じ2層構成（ローカルSQLite / Googleリンク時Firestore共有）
+  履歴タブ（通知有効時のみ）、Google連携による家族共有（招待コード・メンバー管理・表示名）
+- データは2層構成（ローカルSQLite / Googleリンク時Firestore共有）
 
-Jest 144件・Detox E2E 44件、すべてCIで成功。
+Jest 217件・Firestore ルールテスト 24件・Detox E2E 44件、すべてCIで成功。
 
 ## 次にやること（リリースまで）
 
-**すべて `RELEASE.md` に詳細手順あり。以下は手動（ユーザー）作業。**
-1. リリース用キーストア生成（`keytool`）+ `android/keystore.properties` 作成
-   （コード側は対応済み: build.gradleがkeystore.propertiesから署名を読む。無ければdebugにフォールバック）
-2. Firestoreルールのデプロイ: `firebase login` → `firebase deploy --only firestore:rules`
-   （コード側は対応済み: firebase.json/.firebaserc 作成済み）
-3. release証明書のSHA-1をFirebaseに登録 + release用Android OAuth Client ID確認（共有機能を出すため）
-4. プライバシーポリシー用意 + Play Console 登録
-5. AABビルド（`cd android && ./gradlew.bat bundleRelease`）+ Play Console 提出（内部テスト推奨）
+**詳細手順は `RELEASE.md`。以下はすべて手動（ユーザー）作業。**
 
-**残Issue**: #13（テーマカラー）、#16（プッシュ通知実機テスト＝通知フラグをtrueに戻すのは実機2台が揃ってから）
+完了済み（2026-09-19 時点）: リリース用キーストアと署名設定 / Firestore ルールのデプロイ /
+release の SHA-1 を Firebase・OAuth クライアントに登録 / Google Auth Platform の公開ステータス「本番環境」/
+プライバシーポリシー公開（https://terrastrix.github.io/FridgeManager/privacy-policy.html）/ ストア掲載文（`docs/store-listing.md`）
+
+1. **Play Console のデベロッパーアカウント登録**（登録料・本人確認）
+2. **クローズドテスト**: 2023-11-13 以降に作成した個人アカウントは、12人以上のテスターが14日間連続で参加し、
+   実際に使ったことが製品版の申請条件。リリース日程に最も影響するので早めに始める
+3. ストア掲載用画像（アイコン512px・フィーチャーグラフィック1024x500・スクリーンショット）とアプリ内容の申告
+   （データセーフティ・コンテンツのレーティング・対象年齢・広告の有無）
+4. AAB ビルド（`bundleRelease`）→ クローズドテストのトラックにアップロード
+5. Google Play 公開後、**Play のアプリ署名鍵の SHA-1** を Firebase に追加（無いとストア版で Google ログインが失敗する）
+
+**残Issue**: #13（テーマカラー）、#11・#16（プッシュ通知＝通知フラグを true に戻すのは実機2台が揃ってから）
+
+## 判明した重要事項（2026-09-18〜19）
+
+- **ローカルで Android ビルドするには JDK 17**（`C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot`）。
+  Android Studio 同梱の Java 25 では Gradle 8.14 が起動しない（エラーメッセージは「25.0.3」とだけ出る）。
+  一方、**Firestore エミュレータ（`npm run test:rules`）は Java 21 以上が必要**なので、こちらは Android Studio 同梱の Java を使う
+- **Google サインイン（expo-auth-session）の Android 固有の注意点**
+  - サインイン後は `{applicationId}:/oauthredirect` でアプリに戻るため、AndroidManifest の intent-filter にパッケージ名の scheme が必要
+    （`src/__tests__/androidManifest.test.ts` で app.json と照合）
+  - Android では認可コード（PKCE）が返る。フックの自動交換は結果を `promptAsync` の戻り値に載せないため、
+    `shouldAutoExchangeCode: false` にして `exchangeCodeAsync` で自前で交換している
+  - Android 用 OAuth クライアントは「カスタム URI スキームを有効にする」が必要。`.env` の `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID`
+    はビルド時に埋め込まれるので、変えたら `android/app/build` を消して再ビルド
+  - 既存ユーザーにつながった Google アカウントでリンクすると `auth/credential-already-in-use`。この場合は
+    `signInWithCredential` でログインし直し、端末データは移行しない（ID が重なり家族のデータを上書きするため）
+- **Android の自動バックアップ（`allowBackup="true"`）**で、同じ端末に入れ直すとログイン状態も復元される。
+  入れ直し後の共有再開処理を実機で試すには `adb shell pm clear com.terrastrix.fridgemanager` でデータを消す
+- **Firestore のドキュメントは偶数階層**でないと SDK がエラーにする。単体テストのモックが素通しだったため
+  `users/{uid}/profile`（奇数階層）の不具合を見逃していた → モックも奇数階層をエラーにするようにした
+- **Firestore ルールは `firestore-rules-tests/` でエミュレータ上でテスト**（`npm run test:rules`、CI の `firestore-rules` ジョブ）。
+  ルールを変えたらテストを通してからデプロイする。本番への反映は `firebase deploy --only firestore:rules`
+- **react-native 標準の `SafeAreaView` は Android では効かない**。edge-to-edge 表示で画面上部のボタンがステータスバーと重なり
+  押せなくなるため、画面は `react-native-safe-area-context` の `SafeAreaView` を使う（`src/__tests__/safeArea.test.ts` で検証）
+- **Firebase の確認は Firebase MCP サーバー**（`.mcp.json`、Git 対象外）で行える。参照系は常時許可・更新系は都度確認の
+  権限設定を `.claude/settings.local.json` に入れてある
 
 ## 判明した重要事項
 
@@ -96,14 +132,24 @@ com.android.internal.systemui.navbar.threebutton` で3ボタンナビに切り�
   `npm run test:unit`（`--coverage`なし）しか実行されないため**実質的にCIをゲートしていない**。
   画面コンポーネント（StorageScreen/SettingsScreen等）は元々0%カバレッジで、新規実装も同様の方針
   （ロジックは純粋関数に分離してテストし、JSX配線自体は未テスト）で問題ない。
-- `npx tsc --noEmit` はこのプロジェクトのtsconfig.json自体の設定不備（`customConditions`と`moduleResolution`の
-  不整合、pre-existing）でリポジトリ全体としては失敗する。個別ファイルは
-  `npx tsc --noEmit --jsx react-native --skipLibCheck --moduleResolution bundler ...` のような一時オプションで
-  型チェック可能。
+- ~~`npx tsc --noEmit` は tsconfig.json の設定不備で失敗する~~ → 2026-09-18 に解消（`moduleResolution` の上書きを削除）。
+  現在はリポジトリ全体で `npx tsc --noEmit` が通る。
 - `npx eslint` も `.eslintrc.json` が参照する `eslint-config-prettier` が未解決でリポジトリ全体として動かない
   （pre-existing、本セッションでは対応せず）。
 
 ## 作業ログ
+
+### 2026-09-18〜19（リリース前の総点検）
+- PR #17: Expo SDK 54 の推奨バージョンに依存を揃えた（RN 0.81.5、MainApplication を SDK 54 テンプレートに）、
+  アプリIDを `com.terrastrix.fridgemanager` に変更、ClayFalcon 表記を Terrastrix に統一
+- PR #18: 実機で「家族と共有する」が最後まで動かなかった問題を修正（intent-filter、認可コード交換、初回移行の uid、
+  一括書き込みで待ち時間短縮と待機メッセージ、入れ直し後の共有再開）
+- PR #19: 招待コードで参加できない不具合（profile の奇数階層）、招待なしで参加できるルールの穴、
+  メンバー削除の即時反映、画面上部のボタンがステータスバーに潜る不具合を修正。Firestore ルールのテストを新設
+- PR #20: 家族に表示する名前を追加、参加完了・共有状態の文言を「○○ さんの冷蔵庫」に変更
+- Firebase 側: Android アプリ（新ID）と SHA-1 の登録、OAuth クライアントの設定、Firestore ルールの本番反映、
+  匿名認証の有効化を実施。Firebase CLI と Firebase MCP サーバーを導入
+
 
 ### 2026-07-20（賞味期限の目安日数）
 - FoodItem に `defaultExpiryDays`（賞味期限の目安日数）を追加
