@@ -77,6 +77,10 @@ firebase deploy --only firestore:rules
 
 デプロイ後、Firebase Console → Firestore Database → ルール で反映を確認してください。
 
+> **`firestore.rules` を変更したとき**は、デプロイ前に `npm run test:rules` でルールのテスト
+> （Firestore エミュレータ上で実行。Java 21 以上が必要）が通ることを確認し、変更をマージしてから再デプロイしてください。
+> CI（Unit Tests ワークフローの `firestore-rules` ジョブ）でも同じテストが走ります。
+
 ---
 
 ## 3. リリース署名証明書を Google 認証に登録（共有機能を使うなら必須）

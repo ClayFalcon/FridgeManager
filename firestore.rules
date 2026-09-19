@@ -14,15 +14,31 @@ service cloud.firestore {
       return isSignedIn() && (request.auth.uid == ownerUid || isMember(ownerUid));
     }
 
+    // ownerUid が発行した、期限内の招待コードか
+    function isValidInvite(code, ownerUid) {
+      let invitePath = /databases/$(database)/documents/invites/$(code);
+      return code is string
+        && exists(invitePath)
+        && get(invitePath).data.ownerUid == ownerUid
+        && get(invitePath).data.expiresAt > request.time;
+    }
+
     match /users/{ownerUid} {
 
-      match /profile {
+      // 自分が属する共有グループ（users/{uid}/profile/sharing）。本人だけが読み書きできる
+      match /profile/{docId} {
         allow read, write: if isSignedIn() && request.auth.uid == ownerUid;
       }
 
       match /members/{memberUid} {
         allow read: if isSelfOrMember(ownerUid);
-        allow create: if isSignedIn() && request.auth.uid == memberUid;
+        // 参加は本人が、オーナーの発行した有効な招待コードを添えたときだけ
+        allow create: if isSignedIn()
+          && request.auth.uid == memberUid
+          && memberUid != ownerUid
+          && request.resource.data.keys().hasOnly(['joinedAt', 'inviteCode'])
+          && request.resource.data.joinedAt == request.time
+          && isValidInvite(request.resource.data.inviteCode, ownerUid);
         allow delete: if isSignedIn() && (request.auth.uid == ownerUid || request.auth.uid == memberUid);
         allow update: if false;
       }
@@ -86,8 +102,13 @@ service cloud.firestore {
     }
 
     match /invites/{code} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.ownerUid == request.auth.uid;
+      // コードを知っている人だけが1件ずつ読める（一覧取得でコードを集められないよう list は許可しない）
+      allow get: if isSignedIn();
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'expiresAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt <= request.time + duration.value(25, 'h');
       allow update, delete: if false;
     }
   }

@@ -9,8 +9,14 @@ import {
 } from '../services/SharingService';
 
 jest.mock('firebase/firestore', () => ({
-  collection: jest.fn(),
-  doc: jest.fn((_db, ...path) => path.join('/')),
+  collection: jest.fn((_db, ...path) => path.join('/')),
+  // 実際の Firestore と同じく、ドキュメントは偶数階層でないとエラーにする
+  doc: jest.fn((_db, ...path) => {
+    if (path.length % 2 !== 0) {
+      throw new Error(`Invalid document reference: ${path.join('/')}`);
+    }
+    return path.join('/');
+  }),
   getDoc: jest.fn(),
   setDoc: jest.fn(),
   deleteDoc: jest.fn(),
@@ -62,6 +68,8 @@ const PAST = new Date(Date.now() - 60 * 60 * 1000);   // 1時間前
 describe('generateInviteCode', () => {
   beforeEach(() => jest.clearAllMocks());
 
+  beforeEach(() => (getDocs as jest.Mock).mockResolvedValue(makeMembersSnap([])));
+
   it('6文字のコードを返す', async () => {
     (setDoc as jest.Mock).mockResolvedValue(undefined);
     const code = await generateInviteCode('owner-uid');
@@ -76,6 +84,14 @@ describe('generateInviteCode', () => {
       expect.stringContaining(`invites/${code}`),
       expect.objectContaining({ ownerUid: 'owner-uid' }),
     );
+  });
+
+  it(`メンバーが上限（${MEMBER_LIMIT}人）のときは発行しない`, async () => {
+    (getDocs as jest.Mock).mockResolvedValue(
+      makeMembersSnap(Array.from({ length: MEMBER_LIMIT - 1 }, (_, i) => `member-${i}`)),
+    );
+    await expect(generateInviteCode('owner-uid')).rejects.toThrow('上限');
+    expect(setDoc).not.toHaveBeenCalled();
   });
 });
 
@@ -94,6 +110,30 @@ describe('joinWithCode', () => {
     expect(setDoc).toHaveBeenCalledTimes(2);
   });
 
+  it('招待コードを添えてメンバー登録し、その後に自分の所属グループを保存する', async () => {
+    (getDoc as jest.Mock).mockResolvedValue(makeInviteSnap('owner-uid', FUTURE));
+    (setDoc as jest.Mock).mockResolvedValue(undefined);
+
+    await joinWithCode('abc123', 'my-uid');
+
+    expect((setDoc as jest.Mock).mock.calls).toEqual([
+      [
+        'users/owner-uid/members/my-uid',
+        { joinedAt: { _type: 'serverTimestamp' }, inviteCode: 'ABC123' },
+      ],
+      ['users/my-uid/profile/sharing', { ownerUid: 'owner-uid' }],
+    ]);
+  });
+
+  it('参加する側はオーナーのメンバー一覧を読まない（権限が無いため）', async () => {
+    (getDoc as jest.Mock).mockResolvedValue(makeInviteSnap('owner-uid', FUTURE));
+    (setDoc as jest.Mock).mockResolvedValue(undefined);
+
+    await joinWithCode('ABC123', 'my-uid');
+
+    expect(getDocs).not.toHaveBeenCalled();
+  });
+
   it('存在しないコードはエラー', async () => {
     (getDoc as jest.Mock).mockResolvedValue({ exists: () => false });
     await expect(joinWithCode('INVALID', 'my-uid')).rejects.toThrow('招待コードが無効です');
@@ -107,15 +147,6 @@ describe('joinWithCode', () => {
   it('自分自身のコードはエラー', async () => {
     (getDoc as jest.Mock).mockResolvedValue(makeInviteSnap('my-uid', FUTURE));
     await expect(joinWithCode('ABC123', 'my-uid')).rejects.toThrow('自分自身');
-  });
-
-  it(`メンバーが上限（${MEMBER_LIMIT}人）のときはエラー`, async () => {
-    (getDoc as jest.Mock).mockResolvedValue(makeInviteSnap('owner-uid', FUTURE));
-    // オーナー含むMEMBER_LIMIT人 → メンバー枠は MEMBER_LIMIT - 1 人
-    (getDocs as jest.Mock).mockResolvedValue(makeMembersSnap(
-      Array.from({ length: MEMBER_LIMIT - 1 }, (_, i) => `member-${i}`),
-    ));
-    await expect(joinWithCode('ABC123', 'my-uid')).rejects.toThrow('上限');
   });
 
   it('コードを大文字に正規化して検索する', async () => {
@@ -133,10 +164,27 @@ describe('joinWithCode', () => {
 describe('getOwnerUid', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('profileにownerUidがあればそれを返す', async () => {
-    (getDoc as jest.Mock).mockResolvedValue(makeProfileSnap('other-uid'));
+  it('profile/sharing を読む', async () => {
+    (getDoc as jest.Mock).mockResolvedValue(makeProfileSnap(null));
+    await getOwnerUid('my-uid');
+    expect(getDoc).toHaveBeenCalledWith('users/my-uid/profile/sharing');
+  });
+
+  it('profileにownerUidがあり、まだメンバーならそのオーナーを返す', async () => {
+    (getDoc as jest.Mock)
+      .mockResolvedValueOnce(makeProfileSnap('other-uid'))
+      .mockResolvedValueOnce({ exists: () => true });
     const result = await getOwnerUid('my-uid');
     expect(result).toBe('other-uid');
+    expect(getDoc).toHaveBeenLastCalledWith('users/other-uid/members/my-uid');
+  });
+
+  it('オーナーに削除されていたら自分のUIDを返す', async () => {
+    (getDoc as jest.Mock)
+      .mockResolvedValueOnce(makeProfileSnap('other-uid'))
+      .mockRejectedValueOnce(new Error('permission-denied'));
+    const result = await getOwnerUid('my-uid');
+    expect(result).toBe('my-uid');
   });
 
   it('profileがなければ自分のUIDを返す', async () => {
@@ -180,19 +228,13 @@ describe('getMembers', () => {
 describe('removeMember', () => {
   beforeEach(() => jest.clearAllMocks());
 
-  it('membersドキュメントを削除してメンバーのprofileをリセットする', async () => {
+  it('membersドキュメントだけを削除する（他人のprofileは書き換えられないため）', async () => {
     (deleteDoc as jest.Mock).mockResolvedValue(undefined);
-    (setDoc as jest.Mock).mockResolvedValue(undefined);
 
     await removeMember('owner-uid', 'member-uid');
 
-    expect(deleteDoc).toHaveBeenCalledWith(
-      expect.stringContaining('users/owner-uid/members/member-uid'),
-    );
-    expect(setDoc).toHaveBeenCalledWith(
-      expect.stringContaining('users/member-uid/profile'),
-      { ownerUid: null },
-    );
+    expect(deleteDoc).toHaveBeenCalledWith('users/owner-uid/members/member-uid');
+    expect(setDoc).not.toHaveBeenCalled();
   });
 });
 
@@ -210,9 +252,6 @@ describe('leaveSharing', () => {
     expect(deleteDoc).toHaveBeenCalledWith(
       expect.stringContaining('users/owner-uid/members/my-uid'),
     );
-    expect(setDoc).toHaveBeenCalledWith(
-      expect.stringContaining('users/my-uid/profile'),
-      { ownerUid: null },
-    );
+    expect(setDoc).toHaveBeenCalledWith('users/my-uid/profile/sharing', { ownerUid: null });
   });
 });
