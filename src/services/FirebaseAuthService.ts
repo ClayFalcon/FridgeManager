@@ -1,3 +1,4 @@
+import { exchangeCodeAsync } from 'expo-auth-session';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, linkWithCredential } from 'firebase/auth';
@@ -14,9 +15,13 @@ const WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 const PLACEHOLDER_CLIENT_ID = 'missing-client-id.apps.googleusercontent.com';
 
 export function useFirebaseAuthService(): AuthService {
-  const [, , promptAsync] = Google.useIdTokenAuthRequest({
+  const [request, , promptAsync] = Google.useIdTokenAuthRequest({
     androidClientId: ANDROID_CLIENT_ID ?? PLACEHOLDER_CLIENT_ID,
     webClientId: WEB_CLIENT_ID ?? PLACEHOLDER_CLIENT_ID,
+    // Android では認可コード（PKCE）が返り、ID トークンはコード交換で得る。
+    // フックの自動交換は結果を promptAsync の戻り値ではなく response に反映するため、
+    // ここでは自動交換を止めて linkWithGoogle 内で交換する（コードは1回しか交換できない）。
+    shouldAutoExchangeCode: false,
   });
 
   return {
@@ -30,7 +35,19 @@ export function useFirebaseAuthService(): AuthService {
       if (result.type !== 'success') {
         throw new Error('Google sign-in cancelled or failed');
       }
-      const idToken = result.params.id_token;
+      let idToken: string | undefined = result.params.id_token;
+      if (!idToken && result.params.code && request) {
+        const tokens = await exchangeCodeAsync(
+          {
+            clientId: ANDROID_CLIENT_ID,
+            code: result.params.code,
+            redirectUri: request.redirectUri,
+            extraParams: { code_verifier: request.codeVerifier ?? '' },
+          },
+          Google.discovery,
+        );
+        idToken = tokens.idToken;
+      }
       if (!idToken) {
         throw new Error('Google から ID トークンを取得できませんでした');
       }
