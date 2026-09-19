@@ -5,10 +5,10 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { FoodItem, StorageLocation, StockLevel } from '../types/food';
 import { useRepository } from '../hooks/useRepository';
 import { useAuth } from '../context/AuthContext';
@@ -208,14 +208,14 @@ export default function StorageScreen({ onOpenSettings, deepLinkTarget, onDeepLi
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.root} testID="storage-screen">
+      <SafeAreaView style={styles.root} edges={['top', 'left', 'right']} testID="storage-screen">
         <ActivityIndicator style={styles.loader} size="large" color="#0d8f7a" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.root} testID="storage-screen">
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right']} testID="storage-screen">
       {/* ヘッダー */}
       <View style={styles.header}>
         <View style={styles.headerText}>

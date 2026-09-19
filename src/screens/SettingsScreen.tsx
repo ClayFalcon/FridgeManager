@@ -5,12 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   ScrollView,
   Switch,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useAuth } from '../context/AuthContext';
@@ -275,7 +275,7 @@ export default function SettingsScreen({ onBack, authService }: Props) {
   }
 
   return (
-    <SafeAreaView style={styles.root} testID="settings-screen">
+    <SafeAreaView style={styles.root} edges={['top', 'left', 'right', 'bottom']} testID="settings-screen">
       <View style={styles.header}>
         <TouchableOpacity testID="btn-back" onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backText}>← 戻る</Text>
