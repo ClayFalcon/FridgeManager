@@ -135,6 +135,55 @@ describe('共有グループへの参加（members）', () => {
   });
 });
 
+describe('家族に表示する名前', () => {
+  const memberRef = (uid: string) => doc(dbAs(uid), 'users', OWNER, 'members', MEMBER);
+
+  beforeEach(async () => {
+    await seed(`invites/${CODE}`, { ownerUid: OWNER, expiresAt: hoursFromNow(24) });
+  });
+
+  it('参加するときに名前を付けられる', async () => {
+    await assertSucceeds(
+      setDoc(memberRef(MEMBER), { joinedAt: serverTimestamp(), inviteCode: CODE, displayName: 'はやと' }),
+    );
+  });
+
+  it('参加するときの名前が長すぎる（21文字以上）と参加できない', async () => {
+    await assertFails(
+      setDoc(memberRef(MEMBER), {
+        joinedAt: serverTimestamp(),
+        inviteCode: CODE,
+        displayName: 'あ'.repeat(21),
+      }),
+    );
+  });
+
+  it('メンバー本人は自分の名前を変えられる（日本語20文字まで）', async () => {
+    await seed(`users/${OWNER}/members/${MEMBER}`, { joinedAt: hoursFromNow(0), inviteCode: CODE });
+    await assertSucceeds(updateDoc(memberRef(MEMBER), { displayName: 'あ'.repeat(20) }));
+    await assertFails(updateDoc(memberRef(MEMBER), { displayName: '' }));
+  });
+
+  it('オーナーや他人は、メンバーの名前を変えられない', async () => {
+    await seed(`users/${OWNER}/members/${MEMBER}`, { joinedAt: hoursFromNow(0), inviteCode: CODE });
+    await assertFails(updateDoc(memberRef(OWNER), { displayName: 'いたずら' }));
+    await assertFails(updateDoc(memberRef(STRANGER), { displayName: 'いたずら' }));
+  });
+
+  it('オーナーの名前は、本人が書けてメンバーが読める。他人は読み書きできない', async () => {
+    await seed(`users/${OWNER}/members/${MEMBER}`, { joinedAt: hoursFromNow(0), inviteCode: CODE });
+    await assertSucceeds(setDoc(doc(dbAs(OWNER), 'users', OWNER, 'meta', 'owner'), { displayName: 'ママ' }));
+    await assertSucceeds(getDoc(doc(dbAs(MEMBER), 'users', OWNER, 'meta', 'owner')));
+    await assertFails(getDoc(doc(dbAs(STRANGER), 'users', OWNER, 'meta', 'owner')));
+    await assertFails(setDoc(doc(dbAs(MEMBER), 'users', OWNER, 'meta', 'owner'), { displayName: 'いたずら' }));
+  });
+
+  it('自分の名前（profile/name）は本人だけが読み書きできる', async () => {
+    await assertSucceeds(setDoc(doc(dbAs(MEMBER), 'users', MEMBER, 'profile', 'name'), { displayName: 'はやと' }));
+    await assertFails(getDoc(doc(dbAs(OWNER), 'users', MEMBER, 'profile', 'name')));
+  });
+});
+
 describe('共有データ（food_items）', () => {
   beforeEach(async () => {
     await seed(`users/${OWNER}/food_items/1`, { name: '牛乳' });

@@ -26,6 +26,7 @@ function memberDoc(ownerUid: string, memberUid: string) {
 export interface Member {
   uid: string;
   joinedAt: Date;
+  displayName?: string;
 }
 
 function generateCode(): string {
@@ -53,7 +54,11 @@ export async function generateInviteCode(ownerUid: string): Promise<string> {
   return code;
 }
 
-export async function joinWithCode(code: string, myUid: string): Promise<string> {
+export async function joinWithCode(
+  code: string,
+  myUid: string,
+  displayName?: string | null,
+): Promise<string> {
   const normalizedCode = code.toUpperCase();
   const inviteSnap = await getDoc(doc(db, 'invites', normalizedCode));
   if (!inviteSnap.exists()) {
@@ -75,6 +80,8 @@ export async function joinWithCode(code: string, myUid: string): Promise<string>
   await setDoc(memberDoc(ownerUid, myUid), {
     joinedAt: serverTimestamp(),
     inviteCode: normalizedCode,
+    // オーナーのメンバー一覧に表示する名前
+    ...(displayName ? { displayName } : {}),
   });
   await setDoc(profileDoc(myUid), { ownerUid });
 
@@ -120,6 +127,7 @@ export async function getMembers(ownerUid: string): Promise<Member[]> {
   return snap.docs.map((d) => ({
     uid: d.id,
     joinedAt: (d.data().joinedAt as Timestamp | null)?.toDate() ?? new Date(),
+    displayName: (d.data().displayName as string | undefined) ?? undefined,
   }));
 }
 
