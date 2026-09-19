@@ -10,6 +10,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { setAllInBatches } from './batchWrite';
 import { Recipe, RecipeIngredient } from '../types/recipe';
 import { RecipeRepository } from './RecipeRepository';
 
@@ -58,6 +59,11 @@ export class CloudRecipeRepository implements RecipeRepository {
 
   async add(recipe: Recipe): Promise<void> {
     await setDoc(doc(recipePath(this.uid), recipe.id), toDoc(recipe));
+  }
+
+  // 移行時などの複数件保存はバッチで一括書き込みする
+  async addAll(recipes: Recipe[]): Promise<void> {
+    await setAllInBatches(recipes, (recipe) => [doc(recipePath(this.uid), recipe.id), toDoc(recipe)]);
   }
 
   async update(recipe: Recipe): Promise<void> {

@@ -10,6 +10,7 @@ import {
   onSnapshot,
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { setAllInBatches } from './batchWrite';
 import { ShoppingItem } from '../types/shopping';
 import { ShoppingRepository } from './ShoppingRepository';
 
@@ -50,6 +51,11 @@ export class CloudShoppingRepository implements ShoppingRepository {
 
   async add(item: ShoppingItem): Promise<void> {
     await setDoc(doc(shoppingPath(this.uid), item.id), toDoc(item));
+  }
+
+  // 移行時などの複数件保存はバッチで一括書き込みする
+  async addAll(items: ShoppingItem[]): Promise<void> {
+    await setAllInBatches(items, (item) => [doc(shoppingPath(this.uid), item.id), toDoc(item)]);
   }
 
   async delete(id: string): Promise<void> {
