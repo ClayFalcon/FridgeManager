@@ -8,11 +8,23 @@
 - このアプリは EAS を使わず、ローカルの `gradlew` で直接ビルドします（bare workflow）。
 - 通知機能はフィーチャーフラグ（`src/config/features.ts` の `NOTIFICATIONS_ENABLED=false`）で
   無効化中です。実機2台でテストできる環境が整ったら `true` に戻して再ビルドしてください。
-- コマンドは Git Bash（プロジェクトルート `C:\Users\hayab\git\FridgeManager`）想定です。
+- プロジェクトルートは `C:\dev\github.com\Terrastrix\FridgeManager` です。
+- 手作業のコマンドは**コマンドプロンプト（cmd）**で動く形で書いています（1章の keytool だけは Git Bash 用の書式のままです）。
+- Android のビルドには **JDK 17** を使います（Android Studio 同梱の Java 25 では Gradle 8.14 が起動しません）。
+
+## 進捗（2026-09-19 時点）
+
+| 手順 | 状態 |
+|---|---|
+| 1. リリース用キーストア | ✅ 完了 |
+| 2. Firestore ルールのデプロイ | ✅ 完了（ルールを変えたら再デプロイ） |
+| 3. SHA-1 登録・OAuth クライアント・公開ステータス | ✅ 完了（Play 公開後に Play の署名鍵の SHA-1 を追加する） |
+| 4. プライバシーポリシー | ✅ 公開済み。Play Console への URL 登録は未 |
+| 5. AAB ビルドと Play Console 提出 | ⬜ 未着手 |
 
 ---
 
-## 1. リリース用キーストアの生成（必須・一度だけ）
+## 1. リリース用キーストアの生成（必須・一度だけ）✅ 完了
 
 > **重要**: このキーストアは今後のアプリ更新すべてに必要です。**紛失すると同じアプリとして更新できなくなります**。
 > 必ず安全な場所（パスワード管理ツール等）にバックアップしてください。パスワードも同様。
@@ -58,7 +70,7 @@ keyPassword=（鍵のパスワード）
 
 ---
 
-## 2. Firestore セキュリティルールのデプロイ（必須）
+## 2. Firestore セキュリティルールのデプロイ（必須）✅ 完了
 
 > ルールが未反映だと、DBが「全拒否」または「無防備」の状態になり得ます。
 > `firestore.rules` はリポジトリにあり、`firebase.json` / `.firebaserc`（プロジェクト `fridgemanager-64c00`）も
@@ -83,7 +95,7 @@ firebase deploy --only firestore:rules
 
 ---
 
-## 3. リリース署名証明書を Google 認証に登録（共有機能を使うなら必須）
+## 3. リリース署名証明書を Google 認証に登録（共有機能を使うなら必須）✅ 完了
 
 release キーストアで署名したアプリでは、debug 証明書向けの現在の Google Client ID では
 **Googleサインインが失敗します**。release 証明書の SHA-1 を登録し直す必要があります。
@@ -113,20 +125,39 @@ keytool -list -v -keystore android/app/upload-keystore.jks -alias upload
 3. `.env` の `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` が上記Androidクライアントを指しているか確認
    （Web Client ID `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` は変更不要）
 
+4. Android クライアントの「詳細設定」で **「カスタム URI スキームを有効にする」** にチェック
+   （無いと「Custom URI scheme is not enabled」で失敗する）
+5. `.env` を変えたら `android/app/build` を削除してから再ビルド（値はビルド時にアプリへ埋め込まれる）
+
 > **確認方法**: release ビルドを実機に入れ、「家族と共有する」でGoogleサインインが通ることを必ず確認。
 > 失敗する場合はほぼ SHA-1 の不一致です。
 
+### 3-4. Google ログインの公開ステータス
+
+[Google Auth Platform → 対象](https://console.cloud.google.com/auth/audience?project=fridgemanager-64c00) の
+「公開ステータス」を **本番環境** にする（「テスト中」だとテストユーザー以外はログインできない）。
+2026-09-19 時点で本番環境（「テストに戻る」ボタンが表示されている状態）。
+
+### 3-5. Google Play 公開後にやること
+
+Google Play では、アップロードした AAB を Google がアプリ署名鍵で署名し直して配布します。
+**ストアから入れたアプリの SHA-1 は upload 鍵と異なる**ため、Play Console の
+「テストとリリース → 設定 → アプリの完全性 → アプリ署名」にある「アプリ署名鍵の証明書」の SHA-1 を
+3-2 と同じ手順で Firebase に追加し、同じ SHA-1 の Android 用 OAuth クライアントも用意してください
+（「カスタム URI スキームを有効にする」も忘れずに）。
+
 ---
 
-## 4. プライバシーポリシー（必須）
+## 4. プライバシーポリシー（必須）✅ 公開済み
 
 Google/匿名認証でユーザーデータ（食材・共有グループ情報・Googleアカウントのメール）を扱うため、
 Google Play はプライバシーポリシーURLを要求します。
 
 1. プライバシーポリシーを作成（最低限: 収集するデータ=食材データ・アカウント情報・共有相手のデータ、
    保存先=Google Firebase、第三者提供なし、問い合わせ先）
-2. 公開URLを用意（GitHub Pages / Google サイト / Notion 公開ページ 等でOK）
-3. Play Console の「ストアの設定」とデータセーフティで URL を登録
+2. 公開URL: https://terrastrix.github.io/FridgeManager/privacy-policy.html
+   （`docs/privacy-policy.html` を GitHub Pages で公開済み）
+3. Play Console の「ストアの設定」とデータセーフティで URL を登録（未）
 
 ---
 
@@ -134,15 +165,18 @@ Google Play はプライバシーポリシーURLを要求します。
 
 ### 5-1. リリースビルド
 
-1〜2（署名・ルール）完了後、プロジェクトルートで:
+コマンドプロンプト（cmd）で:
 
-```bash
-cd android && ./gradlew.bat bundleRelease
+```bat
+cd /d C:\dev\github.com\Terrastrix\FridgeManager\android
+set "JAVA_HOME=C:\Program Files\Microsoft\jdk-17.0.20.101-hotspot"
+set "PATH=C:\Program Files\nodejs;%PATH%"
+gradlew.bat bundleRelease
 ```
 
 成果物: `android/app/build/outputs/bundle/release/app-release.aab`
 
-> 署名が正しいか確認するには `./gradlew.bat :app:signingReport` を実行し、
+> 署名が正しいか確認するには `gradlew.bat :app:signingReport` を実行し、
 > `Variant: release` の `Store` が `upload-keystore.jks` になっていることを確認。
 
 ### 5-2. Play Console
@@ -150,8 +184,12 @@ cd android && ./gradlew.bat bundleRelease
 1. [Google Play Console](https://play.google.com/console/) でアプリを新規作成
 2. アプリ内容の申告（対象年齢・データセーフティ・コンテンツのレーティング・広告の有無）
 3. ストア掲載情報（アプリ名・説明・スクリーンショット各サイズ・アイコン512px・フィーチャーグラフィック1024x500）
-4. 「テスト」→「内部テスト」トラックに AAB をアップロード（いきなり製品版より内部テスト推奨）
-5. 審査提出 → 承認後に公開範囲を拡大
+4. 「テスト」→「クローズドテスト」トラックに AAB をアップロードし、テスターを招待
+5. **2023-11-13 以降に作成した個人デベロッパーアカウントは、12人以上のテスターが14日間連続で参加し、
+   実際にアプリを使ったこと**が製品版公開の申請条件
+   （[公式ヘルプ](https://support.google.com/googleplay/android-developer/answer/14151465)）。
+   条件を満たしたらダッシュボードから製品版へのアクセスを申請する
+6. 審査提出 → 承認後に公開 → 3-5（Play の署名鍵の SHA-1 追加）を実施
 
 > **バージョン更新時**: `android/app/build.gradle` の `versionCode`（現在1）を必ず+1、
 > `versionName`（現在1.0.0）も適宜更新してから再ビルド。
